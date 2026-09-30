@@ -1,10 +1,12 @@
 import React from 'react';
 import {
   AbsoluteFill,
+  Audio,
   Easing,
   Sequence,
   interpolate,
   spring,
+  staticFile,
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
@@ -711,6 +713,7 @@ export const Promo: React.FC<{ locale: Locale }> = ({ locale }) => {
   return (
     <AbsoluteFill lang={locale} style={{ fontFamily: SANS, color: C.text }}>
       <Background />
+      <Audio src={staticFile('audio/soundtrack.m4a')} />
       <Sequence from={s.chaos[0]} durationInFrames={s.chaos[1]}>
         <Scene dur={s.chaos[1]} exit={false}>
           <Chaos t={t} />
