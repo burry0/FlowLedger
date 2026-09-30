@@ -1,0 +1,50 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Native tooling
+windows/flutter/ephemeral/
+
+# Test output
+coverage/
+
+# Local configuration and credentials; retain examples
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.pfx
+*.p12
+
+# SQLite user data and journal/WAL files
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+
+# Keep personal exports/backups here or outside the repository
+/exports/
+/backups/
+
+# Temporary editor/OS files
+*.log
+*.tmp
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini

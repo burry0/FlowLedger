@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: '3.44.2'
+
+jobs:
+  test:
+    name: Analyze and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+      - run: flutter pub get --enforce-lockfile
+      - name: Generated localizations are up to date
+        run: |
+          flutter gen-l10n
+          git diff --exit-code -- lib/l10n
+      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: flutter analyze
+      - run: flutter test
+
+  build-windows:
+    name: Windows build
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter build windows --release
+      - name: Refuse to ship any database file
+        shell: pwsh
+        run: |
+          $found = Get-ChildItem build/windows/x64/runner/Release -Recurse -File |
+            Where-Object { $_.Extension -in '.db', '.sqlite', '.sqlite3' -or $_.Name -match '\.db-(wal|shm|journal)$' }
+          if ($found) { $found | ForEach-Object { Write-Error "Database file in build output: $($_.FullName)" }; exit 1 }
+      - name: Package
+        shell: pwsh
+        run: |
+          Copy-Item LICENSE build/windows/x64/runner/Release/
+          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath FlowLedger-windows-x64.zip
+      # Test build: the Release folder itself, so the downloaded artifact is a
+      # single zip with flowledger.exe inside (no zip-in-zip, which Windows
+      # Explorer wrongly reports as password protected).
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FlowLedger-windows-x64
+          path: build/windows/x64/runner/Release/
+          retention-days: 14
+      # Release asset (internal hand-off to the release job only).
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-zip
+          path: FlowLedger-windows-x64.zip
+          retention-days: 3
+
+  release:
+    name: GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-zip
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: FlowLedger-windows-x64.zip
+          draft: true
+          generate_release_notes: true
