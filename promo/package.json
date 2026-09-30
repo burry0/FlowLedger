@@ -1,0 +1,18 @@
+{
+  "name": "flowledger-promo",
+  "private": true,
+  "description": "20-second promo video for FlowLedger, made with Remotion.",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render:en": "remotion render src/index.ts PromoEN out/FlowLedger-promo-en.mp4 --codec=h264 --crf=18",
+    "render:tr": "remotion render src/index.ts PromoTR out/FlowLedger-promo-tr.mp4 --codec=h264 --crf=18"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.531",
+    "@types/react": "^18.3.31",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "4.0.531",
+    "typescript": "^7.0.2"
+  }
+}
