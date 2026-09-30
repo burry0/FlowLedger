@@ -8,6 +8,21 @@ FlowLedger keeps track of what you did for each client, which version you sent, 
 
 > FlowLedger 1.0 is the first public release. It is used daily by its author; as with any tool that holds your records, back up your data regularly (Settings → Backup).
 
+## Product overview
+
+A 20-second look at work, revisions and payments in FlowLedger.
+
+**English**
+
+https://github.com/user-attachments/assets/80a17291-332c-4ba8-a417-d6822ef2498c
+
+<details>
+<summary>Türkçe tanıtım videosu</summary>
+
+https://github.com/user-attachments/assets/6b07ae5f-1a45-4907-bc6d-cadc98a2c3eb
+
+</details>
+
 ## Features
 
 - **Clients and billing periods** — record work per client in an open period; close the period when you get paid and a new one starts automatically.
