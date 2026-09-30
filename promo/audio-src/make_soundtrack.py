@@ -21,6 +21,7 @@ from pathlib import Path
 
 import numpy as np
 from scipy.io import wavfile
+from scipy.signal import butter, sosfilt, sosfilt_zi
 
 SR = 44100
 BPM = 120
@@ -30,29 +31,17 @@ FPS = 30
 SRC = Path(__file__).parent / 'elevenlabs'
 FFMPEG = os.environ.get('FFMPEG', 'ffmpeg')
 
-# ElevenLabs music sections must be at least 3 s long, so the track is
-# generated 0.5 s longer at both ends and trimmed: the intro then ends on the
-# logo (2.5 s) and the calm outro starts on the CTA (17.5 s).
-PREROLL = 0.5
-MUSIC_PLAN = {
-    'positive_global_styles': ['calm minimal electronic', '120 bpm', 'A minor', 'soft warm synth pads',
-                               'clean modern tech product promo', 'polished mix', 'instrumental'],
-    'negative_global_styles': ['vocals', 'aggressive drums', 'dubstep', 'distortion', 'cinematic orchestra', 'busy'],
-    'sections': [
-        {'section_name': 'Soft intro', 'duration_ms': 3000, 'lines': [],
-         'positive_local_styles': ['soft fade-in', 'filtered pads', 'sparse ticking hi-hats',
-                                   'gentle riser building toward a hit'],
-         'negative_local_styles': ['kick drum', 'bass']},
-        {'section_name': 'Logo accent and groove', 'duration_ms': 15000, 'lines': [],
-         'positive_local_styles': ['starts with a soft bright impact accent on the downbeat', 'warm sub bass',
-                                   'light four-on-the-floor kick', 'plucked synth arpeggio', 'gentle sidechain',
-                                   'steady calm momentum'],
-         'negative_local_styles': ['drop', 'loud', 'vocals']},
-        {'section_name': 'Calm outro', 'duration_ms': 3000, 'lines': [],
-         'positive_local_styles': ['drums stop', 'sustained soft chord', 'airy resolution', 'gentle fade out'],
-         'negative_local_styles': ['drums', 'new melody']},
-    ],
-}
+# ElevenLabs does not place section changes on exact times, so it generates a
+# 24 s groove with full energy throughout and the intro, the logo drop and the
+# outro are shaped here with filter sweeps on the 120 BPM grid.
+MUSIC_PROMPT = (
+    'Driving melodic techno instrumental at exactly 120 BPM. Full beat from the very first second, '
+    'rolling sixteenth-note bassline, tight hi-hats, rhythmic synth stabs, no intro and no breakdown. '
+    'Constant forward momentum, sleek modern tech commercial, punchy mix, no vocals.'
+)
+# Where the logo drop (2.5 s) sits in music.mp3: the downbeat of its third bar.
+# Check it again after --generate, a new track starts on a different offset.
+DROP_AT = 0.13 + 8 * BEAT
 SFX_PROMPTS = {
     'whoosh': ('Soft airy UI transition whoosh, short swoosh of air, clean, modern app interface, no music', 0.6),
     'click': ('Single soft subtle UI click, crisp minimal interface tap, very short, clean', 0.5),
@@ -78,7 +67,8 @@ def generate():
                            {'text': text, 'duration_seconds': dur, 'prompt_influence': 0.6})
         (SRC / f'{name}.mp3').write_bytes(audio)
     audio = elevenlabs('/v1/music?output_format=mp3_44100_192',
-                       {'composition_plan': MUSIC_PLAN, 'model_id': 'music_v1'})
+                       {'prompt': MUSIC_PROMPT, 'music_length_ms': 24000, 'model_id': 'music_v1',
+                        'force_instrumental': True})
     (SRC / 'music.mp3').write_bytes(audio)
 
 
@@ -88,6 +78,19 @@ def load(name):
         subprocess.run([FFMPEG, '-v', 'error', '-i', str(SRC / f'{name}.mp3'), '-ar', str(SR), '-ac', '2', str(wav)],
                        check=True)
         return wavfile.read(wav)[1].astype(float) / 32768
+
+
+def sweep_lowpass(x, f0, f1, curve, block=256):
+    """Low-pass whose cutoff glides from f0 to f1 (log scale) across x."""
+    out = np.zeros_like(x)
+    zi = None
+    for s in range(0, len(x), block):
+        p = (s / len(x)) ** curve if f1 > f0 else 1 - (1 - s / len(x)) ** curve
+        sos = butter(2, min(np.exp(np.log(f0) + (np.log(f1) - np.log(f0)) * p), 20000), 'low', fs=SR, output='sos')
+        if zi is None:
+            zi = sosfilt_zi(sos)[:, :, None] * x[0]
+        out[s : s + block], zi = sosfilt(sos, x[s : s + block], axis=0, zi=zi)
+    return out
 
 
 def fades(x, fade_in=0.004, fade_out=0.03):
@@ -122,8 +125,19 @@ if '--generate' in sys.argv:
 
 # ---------- music ----------
 
-music = load('music')[int(PREROLL * SR) :][:N]
+# The groove runs straight through; the drop lands on the logo.
+LOGO_AT, CTA_AT = 2.5, 17.5
+start = int((DROP_AT - LOGO_AT) * SR)
+music = load('music')[start : start + N]
 music = np.pad(music, ((0, N - len(music)), (0, 0)))
+
+# Intro: a closed filter opens and the level swells into the drop.
+i = int(LOGO_AT * SR)
+music[:i] = sweep_lowpass(music[:i], 220, 16000, 2.5) * np.linspace(0.45, 1, i)[:, None] ** 1.5
+
+# Outro: the filter closes and the level drops from the CTA.
+i = int(CTA_AT * SR)
+music[i:] = sweep_lowpass(music[i:], 16000, 380, 0.5) * np.linspace(1, 0.55, N - i)[:, None]
 
 # ---------- sound effects ----------
 
@@ -172,7 +186,7 @@ add(CTA + t_of(36), chime, 0.20)
 
 # ---------- mix ----------
 
-mix = music * 0.8 + sfx
+mix = music * 0.55 + sfx
 fade = int(1.2 * SR)
 mix[-fade:] *= np.linspace(1, 0, fade)[:, None] ** 1.5
 mix[: int(0.05 * SR)] *= np.linspace(0, 1, int(0.05 * SR))[:, None]
