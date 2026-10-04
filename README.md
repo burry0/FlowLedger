@@ -23,6 +23,39 @@ https://github.com/user-attachments/assets/6b07ae5f-1a45-4907-bc6d-cadc98a2c3eb
 
 </details>
 
+## Screenshots
+
+Scroll through the main screens below (dark theme; light theme is also available). All data shown is made-up demo data.
+
+### Client detail
+Total, received and remaining amounts, open revisions and the work list for the active period.
+
+<img src="docs/screenshots/client-detail-dark.png" alt="Client detail screen with period summary cards and work items" width="100%">
+
+### Revisions
+Versions (V1, V2, Final) with Draft / Sent / Approved status, timecoded client feedback and a history timeline.
+
+<img src="docs/screenshots/revisions-dark.png" alt="Revisions screen with versions, feedback and history" width="100%">
+
+### Partial payment
+Record a partial payment; the period stays open and the remaining balance is shown.
+
+<img src="docs/screenshots/partial-payment-dark.png" alt="Partial payment dialog showing the remaining balance" width="100%">
+
+### Periods archive
+Active and closed periods with total work, paid and remaining amounts.
+
+<img src="docs/screenshots/periods-archive-dark.png" alt="Periods archive with closed periods" width="100%">
+
+### Settings
+Language (English, Turkish, German, Russian), currency, theme and backup.
+
+<img src="docs/screenshots/settings-dark.png" alt="Settings screen with language and currency options" width="100%">
+
+### Light theme
+
+<img src="docs/screenshots/client-detail-light.png" alt="Client detail screen in the light theme" width="100%">
+
 ## Features
 
 - **Clients and billing periods** — record work per client in an open period; close the period when you get paid and a new one starts automatically.
