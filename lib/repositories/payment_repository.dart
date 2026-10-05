@@ -2,6 +2,7 @@ import 'package:flowledger/models/category_step_template.dart';
 import 'package:flowledger/models/client_default_category.dart';
 import 'package:flowledger/models/model_converters.dart';
 import 'package:flowledger/models/payment.dart';
+import 'package:flowledger/models/payment_allocation.dart';
 import 'package:flowledger/models/payment_period.dart';
 import 'package:flowledger/models/period_category.dart';
 import 'package:flowledger/services/database_helper.dart';
@@ -79,17 +80,22 @@ class PaymentRepository {
     });
   }
 
-  /// Records a payment in the open period without closing it.
+  /// Records a payment in the open period without closing it. With
+  /// [workItemIds], those work items are marked as paid by this payment; they
+  /// must be completed, unpaid work of the open period and [amount] must equal
+  /// their total.
   Future<Payment> recordPartialPaymentForOpenPeriod(
     String clientId,
     double amount,
     DateTime paidAt,
-    String? note,
-  ) async {
+    String? note, {
+    List<String> workItemIds = const [],
+  }) async {
     if (amount <= 0) {
       throw ArgumentError.value(
           amount, 'amount', 'Partial payment must be greater than zero.');
     }
+    final selectedIds = workItemIds.toSet();
 
     final normalizedNote = note?.trim();
     final paymentNote = normalizedNote == null || normalizedNote.isEmpty
@@ -108,11 +114,26 @@ class PaymentRepository {
         throw StateError('The client has no open period.');
       }
 
+      final periodId = periods.single['id']! as String;
+      final itemTotals = await _unpaidCompletedWorkTotals(
+        transaction,
+        periodId,
+        selectedIds,
+      );
+      if (selectedIds.isNotEmpty) {
+        final selectedTotal =
+            itemTotals.values.fold<double>(0, (sum, total) => sum + total);
+        if ((selectedTotal - amount).abs() >= _amountTolerance) {
+          throw ArgumentError.value(amount, 'amount',
+              'Amount must equal the total of the selected work.');
+        }
+      }
+
       final now = DateTime.now();
       final payment = Payment(
         id: _uuid.v4(),
         clientId: clientId,
-        paymentPeriodId: periods.single['id']! as String,
+        paymentPeriodId: periodId,
         amount: amount,
         paidAt: paidAt,
         note: paymentNote,
@@ -124,9 +145,99 @@ class PaymentRepository {
         payment.toMap(),
         conflictAlgorithm: ConflictAlgorithm.abort,
       );
+      for (final entry in itemTotals.entries) {
+        final allocation = PaymentAllocation(
+          id: _uuid.v4(),
+          paymentId: payment.id,
+          workItemId: entry.key,
+          amount: entry.value,
+          createdAt: now,
+          updatedAt: now,
+        );
+        await transaction.insert(
+          'payment_allocations',
+          allocation.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
+      }
       return payment;
     });
   }
+
+  /// Totals of the [workItemIds] by id. Throws unless every one is completed,
+  /// unpaid work in [paymentPeriodId].
+  Future<Map<String, double>> _unpaidCompletedWorkTotals(
+    DatabaseExecutor executor,
+    String paymentPeriodId,
+    Set<String> workItemIds,
+  ) async {
+    if (workItemIds.isEmpty) {
+      return const {};
+    }
+    final placeholders = List.filled(workItemIds.length, '?').join(', ');
+    final rows = await executor.rawQuery(
+      '''
+        SELECT work_items.id, work_items.total_price
+        FROM work_items
+        WHERE work_items.id IN ($placeholders)
+          AND work_items.payment_period_id = ?
+          AND work_items.status = 'completed'
+          AND work_items.deleted_at IS NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM payment_allocations
+            WHERE payment_allocations.work_item_id = work_items.id
+              AND payment_allocations.deleted_at IS NULL
+          )
+      ''',
+      [...workItemIds, paymentPeriodId],
+    );
+    if (rows.length != workItemIds.length) {
+      throw StateError(
+        'Only completed, unpaid work in the open period can be selected.',
+      );
+    }
+    return {
+      for (final row in rows)
+        row['id']! as String: (row['total_price']! as num).toDouble(),
+    };
+  }
+
+  /// Work items of [paymentPeriodId] that were marked as paid, with the
+  /// payment that covers them.
+  Future<PeriodPaidWork> getPaidWorkForPeriod(String paymentPeriodId) async {
+    final db = await _databaseHelper.database;
+    final rows = await db.rawQuery(
+      '''
+        SELECT
+          payment_allocations.work_item_id,
+          payment_allocations.payment_id,
+          work_items.title,
+          payments.paid_at
+        FROM payment_allocations
+        INNER JOIN payments ON payments.id = payment_allocations.payment_id
+        INNER JOIN work_items
+          ON work_items.id = payment_allocations.work_item_id
+        WHERE payments.payment_period_id = ?
+          AND payment_allocations.deleted_at IS NULL
+          AND payments.deleted_at IS NULL
+          AND work_items.deleted_at IS NULL
+        ORDER BY work_items.title COLLATE NOCASE
+      ''',
+      [paymentPeriodId],
+    );
+    return PeriodPaidWork([
+      for (final row in rows)
+        PaidWorkItem(
+          workItemId: row['work_item_id']! as String,
+          workItemTitle: row['title']! as String,
+          paymentId: row['payment_id']! as String,
+          paidAt: dateFromDatabase(row['paid_at']),
+        ),
+    ]);
+  }
+
+  /// Rounding slack when comparing money totals stored as doubles.
+  static const _amountTolerance = 0.005;
 
   Future<void> _closePaymentPeriod(
     DatabaseExecutor executor,

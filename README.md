@@ -30,7 +30,7 @@ https://github.com/user-attachments/assets/6b07ae5f-1a45-4907-bc6d-cadc98a2c3eb
 - **Work items with stages** — quantity, an optional multiplier (for example ×1.5 for rush jobs), notes and a checklist of stages.
 - **Revisions** — for each work item, keep versions (V1, V2, Final…) with a status (Draft / Sent / Approved) and a file or link, plus client feedback marked as *Revision* or *New scope*, with optional video timecodes. Revision records never change amounts or payments.
 - **History** — a timeline of each work item built from your records.
-- **Payments** — full or partial payments, remaining balance, closed-period archive.
+- **Payments** — full or partial payments, remaining balance, closed-period archive. Record a partial payment by amount or by ticking the work items it covers, and see which work is already paid.
 - **Reports** — export the active period as TXT or Excel (XLSX).
 - **Backup and restore** — save everything to a single file and restore it later, with a safety copy of your current data taken first.
 - **Four languages** — English, Turkish, German, Russian.

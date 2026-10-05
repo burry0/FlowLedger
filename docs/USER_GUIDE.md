@@ -41,7 +41,10 @@ The **History** panel (on the right, or in a tab on small windows) shows version
 
 ## 5. Getting paid
 
-- **Record Partial Payment** records money received while the period stays open.
+- **Record Partial Payment** records money received while the period stays open. Choose how:
+  - **Enter amount** — type the amount you received.
+  - **Select work** — tick the completed work items the client paid for; the amount is their total. Those items then show **Paid** with the payment date, and the payment lists what it was for. Each item can be marked as paid only once.
+- The remaining balance is always the work total minus all payments, whichever way they were entered. Editing or deleting work that is marked as paid does not change the payment; FlowLedger reminds you of this.
 - **Record Payment** records the final payment and **closes the period**. A new active period starts automatically with the current default categories. Work that is still in progress must be completed or deleted first.
 
 Closed periods are listed under **Past Periods** on the client page and in **Periods**. They are read-only, except for revisions.

@@ -746,6 +746,44 @@ class AppLocalizationsTr extends AppLocalizations {
       'Kısmi ödeme kaydedilemedi. Lütfen tekrar deneyin.';
 
   @override
+  String get partialPaymentByAmount => 'Tutar gir';
+
+  @override
+  String get partialPaymentByWork => 'İş seç';
+
+  @override
+  String get partialPaymentSelectHint =>
+      'Bu ödemenin karşılığı olan tamamlanmış işleri seç.';
+
+  @override
+  String get partialPaymentNoUnpaidWork =>
+      'Bu dönemde ödemesi alınmamış tamamlanmış iş yok.';
+
+  @override
+  String get partialPaymentSelectAtLeastOne => 'En az bir iş seç.';
+
+  @override
+  String get selectedWorkTotal => 'Seçilen işlerin toplamı';
+
+  @override
+  String workItemPaidOn(String date) {
+    return 'Ödendi · $date';
+  }
+
+  @override
+  String get paidWorkEditWarning =>
+      'Bu işin ödemesi alındı olarak işaretli. Değişiklik, kayıtlı ödemeyi değiştirmez.';
+
+  @override
+  String get paidWorkDeleteWarning =>
+      'Bu işin ödemesi alındı olarak işaretli. Ödeme kaydı kalır, yalnızca iş silinir.';
+
+  @override
+  String paymentCoversWork(String titles) {
+    return 'Karşılığı: $titles';
+  }
+
+  @override
   String categoryWorkAdded(String name) {
     return '$name işlere eklendi.';
   }

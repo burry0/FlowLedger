@@ -41,7 +41,10 @@ Revizyonlar kapalı dönemlerde de çalışır ve tutarları, ödemeleri veya i�
 
 ## 5. Ödeme alma
 
-- **Ödemenin Bir Kısmını Aldım**: dönem açık kalırken alınan parayı kaydeder.
+- **Ödemenin Bir Kısmını Aldım**: dönem açık kalırken alınan parayı kaydeder. İki yol var:
+  - **Tutar gir**: aldığın tutarı yazarsın.
+  - **İş seç**: müşterinin ödediği tamamlanmış işleri işaretlersin, tutar bunların toplamı olur. Bu işlerde ödeme tarihiyle birlikte **Ödendi** yazar, ödeme kaydında da hangi işlerin karşılığı olduğu görünür. Bir iş yalnızca bir kez ödendi olarak işaretlenebilir.
+- Kalan bakiye her zaman iş toplamı eksi tüm ödemelerdir; ödemeyi hangi yolla girdiğin fark etmez. Ödendi olarak işaretli bir işi düzenlemek veya silmek ödeme kaydını değiştirmez; FlowLedger bunu hatırlatır.
 - **Ödeme Aldım**: son ödemeyi kaydeder ve **dönemi kapatır**. Güncel varsayılan kategorilerle otomatik olarak yeni bir aktif dönem başlar. Devam eden işlerin önce tamamlanması veya silinmesi gerekir.
 
 Kapalı dönemler müşteri sayfasında **Geçmiş Dönemler** altında ve **Dönemler** ekranında listelenir. Revizyonlar hariç salt okunurdur.

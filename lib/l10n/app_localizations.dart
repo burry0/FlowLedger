@@ -1458,6 +1458,66 @@ abstract class AppLocalizations {
   /// **'Partial payment could not be recorded. Please try again.'**
   String get partialPaymentFailed;
 
+  /// No description provided for @partialPaymentByAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter amount'**
+  String get partialPaymentByAmount;
+
+  /// No description provided for @partialPaymentByWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Select work'**
+  String get partialPaymentByWork;
+
+  /// No description provided for @partialPaymentSelectHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select the completed work this payment covers.'**
+  String get partialPaymentSelectHint;
+
+  /// No description provided for @partialPaymentNoUnpaidWork.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no unpaid completed work in this period.'**
+  String get partialPaymentNoUnpaidWork;
+
+  /// No description provided for @partialPaymentSelectAtLeastOne.
+  ///
+  /// In en, this message translates to:
+  /// **'Select at least one work item.'**
+  String get partialPaymentSelectAtLeastOne;
+
+  /// No description provided for @selectedWorkTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected work total'**
+  String get selectedWorkTotal;
+
+  /// No description provided for @workItemPaidOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid {date}'**
+  String workItemPaidOn(String date);
+
+  /// No description provided for @paidWorkEditWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This work is marked as paid. Changing it does not change the recorded payment.'**
+  String get paidWorkEditWarning;
+
+  /// No description provided for @paidWorkDeleteWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This work is marked as paid. The payment stays recorded; only the work is removed.'**
+  String get paidWorkDeleteWarning;
+
+  /// No description provided for @paymentCoversWork.
+  ///
+  /// In en, this message translates to:
+  /// **'For: {titles}'**
+  String paymentCoversWork(String titles);
+
   /// No description provided for @categoryWorkAdded.
   ///
   /// In en, this message translates to:

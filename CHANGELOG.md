@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0
+
+### Added
+- **Partial payment by work:** *Record Partial Payment* now offers **Enter amount** or **Select work**. Selecting work uses the total of the ticked items as the amount and marks those items as paid.
+- Paid work shows **Paid** with the payment date on the client page and in closed periods; each payment lists the work it covers.
+- A reminder when editing or deleting work that is marked as paid (the recorded payment does not change).
+
+### Changed
+- Database schema version 6 (adds payment–work links). The usual automatic copy is written before upgrading; balances are calculated as before.
+
 ## 1.0.0 — first public release
 
 ### Added

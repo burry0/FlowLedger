@@ -4,6 +4,7 @@ import 'package:flowledger/l10n/l10n.dart';
 import 'package:flowledger/models/client_default_category.dart';
 import 'package:flowledger/models/closed_period_summary.dart';
 import 'package:flowledger/models/payment.dart';
+import 'package:flowledger/models/payment_allocation.dart';
 import 'package:flowledger/models/period_category.dart';
 import 'package:flowledger/models/work_item.dart';
 import 'package:flowledger/models/work_item_revision_summary.dart';
@@ -101,7 +102,10 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
     final total = await _workItemRepository.getOpenPeriodTotal(widget.clientId);
     final workItems = await _workItemRepository
         .getWorkItemsForClientOpenPeriod(widget.clientId);
-    final payments = await _paymentRepository.getPaymentsForPeriod(period.id);
+    final (payments, paidWork) = await (
+      _paymentRepository.getPaymentsForPeriod(period.id),
+      _paymentRepository.getPaidWorkForPeriod(period.id),
+    ).wait;
     final paymentTotal =
         payments.fold<double>(0, (sum, payment) => sum + payment.amount);
     // Revision summaries are optional; show the page even if they fail.
@@ -112,6 +116,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       total: total,
       paymentTotal: paymentTotal,
       payments: payments,
+      paidWork: paidWork,
       workItems: workItems,
       startDate: period.startDate,
       revisionSummaries: revisionSummaries,
@@ -283,6 +288,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
             context.l10n.partialPaymentHelper(context.money(remainingAmount)),
         maxAmount: remainingAmount,
         allowZero: false,
+        selectableWorkItems: openPeriod.unpaidCompletedWorkItems.toList(),
       ),
     );
     if (result == null || !mounted) {
@@ -296,6 +302,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
         result.amount,
         result.paidAt,
         result.note,
+        workItemIds: result.workItemIds,
       );
       if (mounted) {
         await _refreshAfterPayment();
@@ -381,10 +388,16 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
     }
   }
 
-  Future<void> _showEditWorkItemDialog(WorkItem workItem) async {
+  Future<void> _showEditWorkItemDialog(
+    WorkItem workItem, {
+    bool isPaid = false,
+  }) async {
     final changes = await showDialog<EditWorkItemResult>(
       context: context,
-      builder: (context) => EditWorkItemDialog(workItem: workItem),
+      builder: (context) => EditWorkItemDialog(
+        workItem: workItem,
+        warning: isPaid ? context.l10n.paidWorkEditWarning : null,
+      ),
     );
     if (changes == null || !mounted) {
       return;
@@ -481,12 +494,20 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
     }
   }
 
-  Future<void> _confirmSoftDeleteWorkItem(WorkItem workItem) async {
+  Future<void> _confirmSoftDeleteWorkItem(
+    WorkItem workItem, {
+    bool isPaid = false,
+  }) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(context.l10n.deleteWorkTitle),
-        content: Text(context.l10n.deleteWorkMessage),
+        content: Text(
+          isPaid
+              ? '${context.l10n.deleteWorkMessage}\n\n'
+                  '${context.l10n.paidWorkDeleteWarning}'
+              : context.l10n.deleteWorkMessage,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -620,23 +641,24 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
     );
   }
 
-  Widget _buildWorkItemRow(
-    WorkItem workItem,
-    Map<String, WorkItemRevisionSummary> revisionSummaries,
-  ) {
+  Widget _buildWorkItemRow(WorkItem workItem, _OpenPeriodWorkData data) {
     final l10n = context.l10n;
     final isCompleted = workItem.status == WorkItemStatus.completed;
     final statusLabel = isCompleted ? l10n.completed : l10n.inProgress;
     final multiplier = workItem.multiplier == 1
         ? ''
         : ' · ×${context.number(workItem.multiplier)}';
+    final paid = data.paidWork.byWorkItem[workItem.id];
+    final paidLabel =
+        paid == null ? null : l10n.workItemPaidOn(formatDate(paid.paidAt));
     return WorkItemTile(
       key: ValueKey(workItem.id),
       workItem: workItem,
       repository: _workItemRepository,
       subtitle: '$statusLabel · '
           '${l10n.quantityWithUnit(context.number(workItem.quantity))} · '
-          '${context.money(workItem.priceSnapshot)}$multiplier',
+          '${context.money(workItem.priceSnapshot)}$multiplier'
+          '${paidLabel == null ? '' : ' · $paidLabel'}',
       metrics: [
         (label: l10n.status, value: statusLabel),
         (label: l10n.quantity, value: context.number(workItem.quantity)),
@@ -644,15 +666,16 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
         if (workItem.completedAt != null)
           (label: l10n.date, value: formatDateTime(workItem.completedAt!)),
       ],
-      revisionSummary: revisionSummaries[workItem.id],
+      revisionSummary: data.revisionSummaries[workItem.id],
       onOpenRevisions: () => WorkItemRevisionsScreen.open(
         context,
         workItemId: workItem.id,
         title: workItem.title,
       ),
       onStepChanged: _setStepDone,
-      onEdit: () => _showEditWorkItemDialog(workItem),
-      onDelete: () => _confirmSoftDeleteWorkItem(workItem),
+      onEdit: () => _showEditWorkItemDialog(workItem, isPaid: paid != null),
+      onDelete: () =>
+          _confirmSoftDeleteWorkItem(workItem, isPaid: paid != null),
       onMarkCompleted: () => _markWorkItemCompleted(workItem),
     );
   }
@@ -921,9 +944,8 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                       );
                     }
 
-                    final workItems = snapshot.requireData.workItems;
-                    final revisionSummaries =
-                        snapshot.requireData.revisionSummaries;
+                    final data = snapshot.requireData;
+                    final workItems = data.workItems;
                     if (workItems.isEmpty) {
                       return Text(context.l10n.noWorkItemsInPeriodYet);
                     }
@@ -942,8 +964,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                                     .colorScheme
                                     .outlineVariant,
                               ),
-                            _buildWorkItemRow(
-                                workItems[index], revisionSummaries),
+                            _buildWorkItemRow(workItems[index], data),
                           ],
                         ],
                       ),
@@ -972,13 +993,18 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                     }
 
                     final payments = snapshot.requireData.payments;
+                    final paidWork = snapshot.requireData.paidWork;
                     if (payments.isEmpty) {
                       return Text(context.l10n.noPaymentsInPeriod);
                     }
                     return Column(
                       children: [
                         for (final payment in payments) ...[
-                          PaymentHistoryTile(payment: payment),
+                          PaymentHistoryTile(
+                            payment: payment,
+                            coveredWorkTitles:
+                                paidWork.titlesForPayment(payment.id),
+                          ),
                           const SizedBox(height: 8),
                         ],
                       ],
@@ -1059,6 +1085,7 @@ class _OpenPeriodWorkData {
     required this.total,
     required this.paymentTotal,
     required this.payments,
+    required this.paidWork,
     required this.workItems,
     required this.startDate,
     required this.revisionSummaries,
@@ -1067,6 +1094,7 @@ class _OpenPeriodWorkData {
   final double total;
   final double paymentTotal;
   final List<Payment> payments;
+  final PeriodPaidWork paidWork;
   final List<WorkItem> workItems;
   final DateTime startDate;
   final Map<String, WorkItemRevisionSummary> revisionSummaries;
@@ -1082,6 +1110,10 @@ class _OpenPeriodWorkData {
 
   Iterable<WorkItem> get completedWorkItems =>
       workItems.where((item) => item.status == WorkItemStatus.completed);
+
+  /// Work that can still be selected in a partial payment.
+  Iterable<WorkItem> get unpaidCompletedWorkItems =>
+      completedWorkItems.where((item) => !paidWork.isPaid(item.id));
 
   Iterable<WorkItem> get inProgressWorkItems =>
       workItems.where((item) => item.status == WorkItemStatus.inProgress);

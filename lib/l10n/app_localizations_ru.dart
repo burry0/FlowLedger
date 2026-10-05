@@ -776,6 +776,44 @@ class AppLocalizationsRu extends AppLocalizations {
       'Не удалось записать частичную оплату. Попробуйте ещё раз.';
 
   @override
+  String get partialPaymentByAmount => 'Ввести сумму';
+
+  @override
+  String get partialPaymentByWork => 'Выбрать работы';
+
+  @override
+  String get partialPaymentSelectHint =>
+      'Выберите завершённые работы, за которые получена эта оплата.';
+
+  @override
+  String get partialPaymentNoUnpaidWork =>
+      'В этом периоде нет неоплаченных завершённых работ.';
+
+  @override
+  String get partialPaymentSelectAtLeastOne => 'Выберите хотя бы одну работу.';
+
+  @override
+  String get selectedWorkTotal => 'Сумма выбранных работ';
+
+  @override
+  String workItemPaidOn(String date) {
+    return 'Оплачено $date';
+  }
+
+  @override
+  String get paidWorkEditWarning =>
+      'Эта работа отмечена как оплаченная. Изменения не затронут записанный платёж.';
+
+  @override
+  String get paidWorkDeleteWarning =>
+      'Эта работа отмечена как оплаченная. Платёж останется, удалится только работа.';
+
+  @override
+  String paymentCoversWork(String titles) {
+    return 'За: $titles';
+  }
+
+  @override
   String categoryWorkAdded(String name) {
     return '«$name» добавлена в работы.';
   }
