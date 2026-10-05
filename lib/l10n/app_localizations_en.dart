@@ -767,6 +767,44 @@ class AppLocalizationsEn extends AppLocalizations {
       'Partial payment could not be recorded. Please try again.';
 
   @override
+  String get partialPaymentByAmount => 'Enter amount';
+
+  @override
+  String get partialPaymentByWork => 'Select work';
+
+  @override
+  String get partialPaymentSelectHint =>
+      'Select the completed work this payment covers.';
+
+  @override
+  String get partialPaymentNoUnpaidWork =>
+      'There is no unpaid completed work in this period.';
+
+  @override
+  String get partialPaymentSelectAtLeastOne => 'Select at least one work item.';
+
+  @override
+  String get selectedWorkTotal => 'Selected work total';
+
+  @override
+  String workItemPaidOn(String date) {
+    return 'Paid $date';
+  }
+
+  @override
+  String get paidWorkEditWarning =>
+      'This work is marked as paid. Changing it does not change the recorded payment.';
+
+  @override
+  String get paidWorkDeleteWarning =>
+      'This work is marked as paid. The payment stays recorded; only the work is removed.';
+
+  @override
+  String paymentCoversWork(String titles) {
+    return 'For: $titles';
+  }
+
+  @override
   String categoryWorkAdded(String name) {
     return '$name added to work items.';
   }

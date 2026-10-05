@@ -1,8 +1,10 @@
 import 'package:flowledger/core/formatting.dart';
 import 'package:flowledger/l10n/l10n.dart';
+import 'package:flowledger/models/payment_allocation.dart';
 import 'package:flowledger/models/payment_period.dart';
 import 'package:flowledger/models/period_detail.dart';
 import 'package:flowledger/repositories/payment_period_repository.dart';
+import 'package:flowledger/repositories/payment_repository.dart';
 import 'package:flowledger/screens/client_detail_screen.dart';
 import 'package:flowledger/screens/work_item_revisions_screen.dart';
 import 'package:flutter/material.dart';
@@ -18,29 +20,42 @@ class PeriodDetailScreen extends StatefulWidget {
 
 class _PeriodDetailScreenState extends State<PeriodDetailScreen> {
   final _periodRepository = PaymentPeriodRepository();
-  late Future<PeriodDetail?> _detailFuture;
+  final _paymentRepository = PaymentRepository();
+  late Future<(PeriodDetail?, PeriodPaidWork)> _detailFuture;
 
   @override
   void initState() {
     super.initState();
-    _detailFuture = _periodRepository.getPeriodDetail(widget.periodId);
+    _detailFuture = _load();
+  }
+
+  Future<(PeriodDetail?, PeriodPaidWork)> _load() async {
+    final detail = await _periodRepository.getPeriodDetail(widget.periodId);
+    // Paid marks are extra information; show the period even if they fail.
+    final paidWork = await _paymentRepository
+        .getPaidWorkForPeriod(widget.periodId)
+        .catchError((Object _) => PeriodPaidWork.empty);
+    return (detail, paidWork);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.periodReviewTitle)),
-      body: FutureBuilder<PeriodDetail?>(
+      body: FutureBuilder<(PeriodDetail?, PeriodPaidWork)>(
         future: _detailFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
           }
-          final detail = snapshot.data;
+          final detail = snapshot.data?.$1;
           if (snapshot.hasError || detail == null) {
             return Center(child: Text(context.l10n.periodDetailsLoadFailed));
           }
-          return _PeriodDetailBody(detail: detail);
+          return _PeriodDetailBody(
+            detail: detail,
+            paidWork: snapshot.requireData.$2,
+          );
         },
       ),
     );
@@ -48,9 +63,10 @@ class _PeriodDetailScreenState extends State<PeriodDetailScreen> {
 }
 
 class _PeriodDetailBody extends StatelessWidget {
-  const _PeriodDetailBody({required this.detail});
+  const _PeriodDetailBody({required this.detail, required this.paidWork});
 
   final PeriodDetail detail;
+  final PeriodPaidWork paidWork;
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +161,8 @@ class _PeriodDetailBody extends StatelessWidget {
               icon: Icons.task_alt_outlined,
               title: workItem.title,
               subtitle: _withNote(
-                '${formatDate(workItem.completedAt ?? workItem.createdAt)} · ${context.l10n.quantityWithUnit(context.number(workItem.quantity))}',
+                '${formatDate(workItem.completedAt ?? workItem.createdAt)} · ${context.l10n.quantityWithUnit(context.number(workItem.quantity))}'
+                '${_paidSuffix(context, paidWork.byWorkItem[workItem.id])}',
                 workItem.notes,
               ),
               trailing: context.money(workItem.totalPrice),
@@ -166,7 +183,13 @@ class _PeriodDetailBody extends StatelessWidget {
             _ReadOnlyItem(
               icon: Icons.payments_outlined,
               title: context.money(payment.amount),
-              subtitle: _withNote(formatDate(payment.paidAt), payment.note),
+              subtitle: _withNote(
+                _withNote(
+                  formatDate(payment.paidAt),
+                  _coveredWork(context, paidWork.titlesForPayment(payment.id)),
+                ),
+                payment.note,
+              ),
             ),
       ],
     );
@@ -238,3 +261,10 @@ class _ReadOnlyItem extends StatelessWidget {
 
 String _withNote(String base, String? note) =>
     note == null || note.isEmpty ? base : '$base\n$note';
+
+String _paidSuffix(BuildContext context, PaidWorkItem? paid) => paid == null
+    ? ''
+    : ' · ${context.l10n.workItemPaidOn(formatDate(paid.paidAt))}';
+
+String? _coveredWork(BuildContext context, List<String> titles) =>
+    titles.isEmpty ? null : context.l10n.paymentCoversWork(titles.join(', '));

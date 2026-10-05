@@ -778,6 +778,45 @@ class AppLocalizationsDe extends AppLocalizations {
       'Teilzahlung konnte nicht erfasst werden. Bitte erneut versuchen.';
 
   @override
+  String get partialPaymentByAmount => 'Betrag eingeben';
+
+  @override
+  String get partialPaymentByWork => 'Arbeiten wählen';
+
+  @override
+  String get partialPaymentSelectHint =>
+      'Wähle die abgeschlossenen Arbeiten, die diese Zahlung abdeckt.';
+
+  @override
+  String get partialPaymentNoUnpaidWork =>
+      'In diesem Zeitraum gibt es keine unbezahlten abgeschlossenen Arbeiten.';
+
+  @override
+  String get partialPaymentSelectAtLeastOne =>
+      'Wähle mindestens eine Arbeit aus.';
+
+  @override
+  String get selectedWorkTotal => 'Summe der gewählten Arbeiten';
+
+  @override
+  String workItemPaidOn(String date) {
+    return 'Bezahlt am $date';
+  }
+
+  @override
+  String get paidWorkEditWarning =>
+      'Diese Arbeit ist als bezahlt markiert. Eine Änderung ändert die erfasste Zahlung nicht.';
+
+  @override
+  String get paidWorkDeleteWarning =>
+      'Diese Arbeit ist als bezahlt markiert. Die Zahlung bleibt erfasst; nur die Arbeit wird entfernt.';
+
+  @override
+  String paymentCoversWork(String titles) {
+    return 'Für: $titles';
+  }
+
+  @override
   String categoryWorkAdded(String name) {
     return '$name zu den Aufträgen hinzugefügt.';
   }

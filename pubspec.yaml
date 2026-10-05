@@ -1,7 +1,7 @@
 name: flowledger
 description: Local-first work, revision and payment tracker for freelancers.
 publish_to: none
-version: 1.0.0+3
+version: 1.1.0+4
 
 environment:
   sdk: ">=3.4.0 <4.0.0"

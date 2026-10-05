@@ -42,7 +42,7 @@ class DatabaseHelper {
     _instance = helper;
   }
 
-  static const databaseVersion = 5;
+  static const databaseVersion = 6;
   static const _databaseFileName = 'flowledger.db';
 
   /// File name used before 1.0.
@@ -398,6 +398,7 @@ class DatabaseHelper {
     3: _createVersion3,
     4: _createVersion4,
     5: _createVersion5,
+    6: _createVersion6,
   };
 
   static Future<void> _createVersion1(DatabaseExecutor db) async {
@@ -681,6 +682,36 @@ class DatabaseHelper {
         'ALTER TABLE work_items ADD COLUMN multiplier REAL NOT NULL DEFAULT 1',
       );
     }
+  }
+
+  /// Links a payment to the work items it covers, for partial payments made by
+  /// selecting work. Adds a table only; balances are still work total minus
+  /// payments. `IF NOT EXISTS` for the same reason as version 4.
+  static Future<void> _createVersion6(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS payment_allocations (
+        id TEXT PRIMARY KEY,
+        payment_id TEXT NOT NULL,
+        work_item_id TEXT NOT NULL,
+        amount REAL NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT,
+        FOREIGN KEY (payment_id) REFERENCES payments(id),
+        FOREIGN KEY (work_item_id) REFERENCES work_items(id)
+      )
+    ''');
+    // A work item can be marked as paid only once.
+    await db.execute('''
+      CREATE UNIQUE INDEX IF NOT EXISTS payment_allocations_one_per_work_item
+      ON payment_allocations (work_item_id)
+      WHERE deleted_at IS NULL
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS payment_allocations_by_payment
+      ON payment_allocations (payment_id)
+      WHERE deleted_at IS NULL
+    ''');
   }
 }
 

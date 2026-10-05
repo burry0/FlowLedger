@@ -20,9 +20,12 @@ class EditWorkItemResult {
 /// Edits a work item's title, quantity, multiplier and notes. The unit price
 /// is fixed; the preview shows unit price × quantity × multiplier.
 class EditWorkItemDialog extends StatefulWidget {
-  const EditWorkItemDialog({super.key, required this.workItem});
+  const EditWorkItemDialog({super.key, required this.workItem, this.warning});
 
   final WorkItem workItem;
+
+  /// Shown above the fields, e.g. when the work is already marked as paid.
+  final String? warning;
 
   static const presetMultipliers = <double>[1, 1.25, 1.5, 2, 3];
 
@@ -99,6 +102,21 @@ class _EditWorkItemDialogState extends State<EditWorkItemDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (widget.warning != null) ...[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.info_outline,
+                          size: 18, color: theme.colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(widget.warning!,
+                            style: theme.textTheme.bodySmall),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 TextFormField(
                   controller: _titleController,
                   autofocus: true,

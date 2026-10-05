@@ -80,9 +80,16 @@ class _ClosedPeriodMetric extends StatelessWidget {
 }
 
 class PaymentHistoryTile extends StatelessWidget {
-  const PaymentHistoryTile({super.key, required this.payment});
+  const PaymentHistoryTile({
+    super.key,
+    required this.payment,
+    this.coveredWorkTitles = const [],
+  });
 
   final Payment payment;
+
+  /// Titles of the work items this payment was recorded for, if any.
+  final List<String> coveredWorkTitles;
 
   @override
   Widget build(BuildContext context) {
@@ -96,6 +103,11 @@ class PaymentHistoryTile extends StatelessWidget {
           children: [
             const SizedBox(height: 4),
             Text(formatDateTime(payment.paidAt)),
+            if (coveredWorkTitles.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                  context.l10n.paymentCoversWork(coveredWorkTitles.join(', '))),
+            ],
             if (note != null && note.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(note),

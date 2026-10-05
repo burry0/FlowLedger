@@ -280,6 +280,16 @@ class WorkItemRepository {
       if (affected != 1) {
         throw StateError('Could not delete the work item.');
       }
+      // The payment stays recorded; only the paid mark goes with the work.
+      await transaction.update(
+        'payment_allocations',
+        {
+          'updated_at': now,
+          'deleted_at': now,
+        },
+        where: 'work_item_id = ? AND deleted_at IS NULL',
+        whereArgs: [workItemId],
+      );
     });
   }
 
