@@ -814,6 +814,80 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get draftToggle => 'Черновик — остальное позже';
+
+  @override
+  String get draftToggleHint =>
+      'Часть цены сейчас, остальное — после завершения.';
+
+  @override
+  String draftShareSplit(String now, String percent, String later) {
+    return 'Сейчас $now ($percent) · После завершения $later';
+  }
+
+  @override
+  String get draftLockedNote =>
+      'Черновик уже завершён, его долю больше нельзя изменить.';
+
+  @override
+  String workItemDraftLabel(String percent) {
+    return 'Черновик $percent';
+  }
+
+  @override
+  String workItemCompletionLabel(String percent) {
+    return 'Завершение $percent';
+  }
+
+  @override
+  String get pendingCompletionsTitle => 'Черновики к завершению';
+
+  @override
+  String get pendingCompletionsNote =>
+      'Черновики из всех периодов, остаток которых ещё не выставлен.';
+
+  @override
+  String pendingCompletionSubtitle(String date, String percent) {
+    return 'Черновик от $date · выставлено $percent';
+  }
+
+  @override
+  String get completeDraftAction => 'Завершить';
+
+  @override
+  String get completeDraftTitle => 'Завершить черновик?';
+
+  @override
+  String completeDraftMessage(String title, String amount) {
+    return 'Остаток «$title» ($amount) будет добавлен в активный период как завершённая работа.';
+  }
+
+  @override
+  String get draftCompleted => 'Завершение добавлено в активный период.';
+
+  @override
+  String get draftCompleteFailed => 'Не удалось завершить черновик.';
+
+  @override
+  String pendingCompletionsSummary(int count, String amount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count черновика',
+      many: '$count черновиков',
+      few: '$count черновика',
+      one: '$count черновик',
+    );
+    return '$_temp0 · к выставлению $amount';
+  }
+
+  @override
+  String get viewDrafts => 'Показать черновики';
+
+  @override
+  String get close => 'Закрыть';
+
+  @override
   String categoryWorkAdded(String name) {
     return '«$name» добавлена в работы.';
   }

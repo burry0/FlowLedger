@@ -3,10 +3,12 @@ import 'package:flowledger/l10n/l10n.dart';
 import 'package:flowledger/models/payment_allocation.dart';
 import 'package:flowledger/models/payment_period.dart';
 import 'package:flowledger/models/period_detail.dart';
+import 'package:flowledger/models/work_item.dart';
 import 'package:flowledger/repositories/payment_period_repository.dart';
 import 'package:flowledger/repositories/payment_repository.dart';
 import 'package:flowledger/screens/client_detail_screen.dart';
 import 'package:flowledger/screens/work_item_revisions_screen.dart';
+import 'package:flowledger/widgets/draft_share_field.dart';
 import 'package:flutter/material.dart';
 
 class PeriodDetailScreen extends StatefulWidget {
@@ -162,6 +164,7 @@ class _PeriodDetailBody extends StatelessWidget {
               title: workItem.title,
               subtitle: _withNote(
                 '${formatDate(workItem.completedAt ?? workItem.createdAt)} · ${context.l10n.quantityWithUnit(context.number(workItem.quantity))}'
+                '${_shareSuffix(context, workItem)}'
                 '${_paidSuffix(context, paidWork.byWorkItem[workItem.id])}',
                 workItem.notes,
               ),
@@ -268,3 +271,8 @@ String _paidSuffix(BuildContext context, PaidWorkItem? paid) => paid == null
 
 String? _coveredWork(BuildContext context, List<String> titles) =>
     titles.isEmpty ? null : context.l10n.paymentCoversWork(titles.join(', '));
+
+String _shareSuffix(BuildContext context, WorkItem workItem) {
+  final label = workItemShareLabel(context, workItem);
+  return label == null ? '' : ' · $label';
+}

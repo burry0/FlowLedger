@@ -805,6 +805,78 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get draftToggle => 'Draft — the rest comes later';
+
+  @override
+  String get draftToggleHint =>
+      'Bill part of the price now and the rest when you finish it.';
+
+  @override
+  String draftShareSplit(String now, String percent, String later) {
+    return 'Now $now ($percent) · On completion $later';
+  }
+
+  @override
+  String get draftLockedNote =>
+      'This draft has been completed, so its share can no longer change.';
+
+  @override
+  String workItemDraftLabel(String percent) {
+    return 'Draft $percent';
+  }
+
+  @override
+  String workItemCompletionLabel(String percent) {
+    return 'Completion $percent';
+  }
+
+  @override
+  String get pendingCompletionsTitle => 'Drafts to complete';
+
+  @override
+  String get pendingCompletionsNote =>
+      'Drafts from any period whose rest you have not billed yet.';
+
+  @override
+  String pendingCompletionSubtitle(String date, String percent) {
+    return 'Draft from $date · $percent billed';
+  }
+
+  @override
+  String get completeDraftAction => 'Complete';
+
+  @override
+  String get completeDraftTitle => 'Complete draft?';
+
+  @override
+  String completeDraftMessage(String title, String amount) {
+    return 'The rest of “$title” ($amount) will be added to the active period as completed work.';
+  }
+
+  @override
+  String get draftCompleted => 'Completion added to the active period.';
+
+  @override
+  String get draftCompleteFailed => 'The draft could not be completed.';
+
+  @override
+  String pendingCompletionsSummary(int count, String amount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count drafts',
+      one: '1 draft',
+    );
+    return '$_temp0 · $amount still to bill';
+  }
+
+  @override
+  String get viewDrafts => 'View drafts';
+
+  @override
+  String get close => 'Close';
+
+  @override
   String categoryWorkAdded(String name) {
     return '$name added to work items.';
   }

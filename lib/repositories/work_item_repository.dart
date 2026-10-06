@@ -1,5 +1,6 @@
 import 'package:flowledger/models/model_converters.dart';
 import 'package:flowledger/models/payment_period.dart';
+import 'package:flowledger/models/pending_completion.dart';
 import 'package:flowledger/models/work_item.dart';
 import 'package:flowledger/models/work_item_filters.dart';
 import 'package:flowledger/models/work_item_step.dart';
@@ -65,6 +66,7 @@ class WorkItemRepository {
     double quantity,
     String? notes, {
     bool createAsCompleted = false,
+    double? draftShare,
   }) async {
     final normalizedTitle = title.trim();
     if (normalizedTitle.isEmpty) {
@@ -76,6 +78,9 @@ class WorkItemRepository {
     if (quantity <= 0) {
       throw ArgumentError.value(
           quantity, 'quantity', 'Quantity must be greater than zero.');
+    }
+    if (draftShare != null) {
+      _checkDraftShare(draftShare);
     }
 
     final period = await PaymentPeriodRepository(
@@ -93,7 +98,9 @@ class WorkItemRepository {
       title: normalizedTitle,
       priceSnapshot: price,
       quantity: quantity,
-      totalPrice: price * quantity,
+      totalPrice: price * quantity * (draftShare ?? 1),
+      billedShare: draftShare ?? 1,
+      isDraft: draftShare != null,
       status: status,
       completedAt: createAsCompleted ? now : null,
       notes: normalizedNotes == null || normalizedNotes.isEmpty
@@ -176,7 +183,7 @@ class WorkItemRepository {
           'One-off work must belong to the open period.',
         );
       }
-      await db.insert('work_items', workItem.toMap(),
+      await db.insert('work_items', _rowFor(workItem),
           conflictAlgorithm: ConflictAlgorithm.abort);
       return;
     }
@@ -190,19 +197,42 @@ class WorkItemRepository {
         'The work item must match a category of the open period.',
       );
     }
-    await db.insert('work_items', workItem.toMap(),
+    await db.insert('work_items', _rowFor(workItem),
         conflictAlgorithm: ConflictAlgorithm.abort);
+  }
+
+  /// [WorkItem.toMap] plus the draft columns when they differ from the
+  /// defaults, so plain rows can still be written to older schemas in tests.
+  static DatabaseRow _rowFor(WorkItem workItem) => {
+        ...workItem.toMap(),
+        if (workItem.billedShare != 1) 'billed_share': workItem.billedShare,
+        if (workItem.isDraft) 'is_draft': 1,
+        if (workItem.completesWorkItemId != null)
+          'completes_work_item_id': workItem.completesWorkItemId,
+      };
+
+  static void _checkDraftShare(double share) {
+    if (share <= 0 || share >= 1) {
+      throw ArgumentError.value(
+          share, 'draftShare', 'A draft share must be between 0 and 1.');
+    }
   }
 
   /// Updates title, quantity, multiplier and notes. The unit price always comes
   /// from the item's own [WorkItem.priceSnapshot], never from the current
   /// category price. An empty [title] keeps the current one.
+  ///
+  /// [isDraft] turns the draft mark on (billing [draftShare] of the full
+  /// price) or off; null keeps it. A completion row keeps its share, and a
+  /// draft that already has a completion cannot change its draft settings.
   Future<WorkItem> updateWorkItem(
     String workItemId, {
     String? title,
     required double quantity,
     double multiplier = 1,
     String? notes,
+    bool? isDraft,
+    double? draftShare,
   }) async {
     if (quantity <= 0) {
       throw ArgumentError.value(
@@ -211,6 +241,13 @@ class WorkItemRepository {
     if (multiplier <= 0) {
       throw ArgumentError.value(
           multiplier, 'multiplier', 'Multiplier must be greater than zero.');
+    }
+
+    if (isDraft == true) {
+      if (draftShare == null) {
+        throw ArgumentError.notNull('draftShare');
+      }
+      _checkDraftShare(draftShare);
     }
 
     final normalizedTitle = title?.trim();
@@ -222,7 +259,23 @@ class WorkItemRepository {
       final newTitle = normalizedTitle == null || normalizedTitle.isEmpty
           ? current.title
           : normalizedTitle;
-      final totalPrice = current.priceSnapshot * quantity * multiplier;
+      var newIsDraft = current.isDraft;
+      var billedShare = current.billedShare;
+      final changesDraft = isDraft != null &&
+          (isDraft != current.isDraft ||
+              (isDraft && draftShare != current.billedShare));
+      if (changesDraft) {
+        if (current.isCompletion) {
+          throw StateError('A completion cannot be marked as a draft.');
+        }
+        if (current.isDraft && await _hasCompletion(transaction, current.id)) {
+          throw StateError('This draft has already been completed.');
+        }
+        newIsDraft = isDraft;
+        billedShare = isDraft ? draftShare! : 1;
+      }
+      final totalPrice =
+          current.priceSnapshot * quantity * multiplier * billedShare;
       final newNotes = normalizedNotes == null || normalizedNotes.isEmpty
           ? null
           : normalizedNotes;
@@ -235,6 +288,10 @@ class WorkItemRepository {
           'total_price': totalPrice,
           'notes': newNotes,
           'updated_at': isoDate(updatedAt),
+          if (changesDraft) ...{
+            'is_draft': newIsDraft ? 1 : 0,
+            'billed_share': billedShare,
+          },
         },
         where: 'id = ? AND deleted_at IS NULL',
         whereArgs: [workItemId],
@@ -252,6 +309,9 @@ class WorkItemRepository {
         quantity: quantity,
         totalPrice: totalPrice,
         multiplier: multiplier,
+        billedShare: billedShare,
+        isDraft: newIsDraft,
+        completesWorkItemId: current.completesWorkItemId,
         status: current.status,
         completedAt: current.completedAt,
         notes: newNotes,
@@ -375,6 +435,9 @@ class WorkItemRepository {
         quantity: current.quantity,
         totalPrice: current.totalPrice,
         multiplier: current.multiplier,
+        billedShare: current.billedShare,
+        isDraft: current.isDraft,
+        completesWorkItemId: current.completesWorkItemId,
         status: WorkItemStatus.completed,
         completedAt: now,
         notes: current.notes,
@@ -383,6 +446,97 @@ class WorkItemRepository {
         deletedAt: current.deletedAt,
       );
     });
+  }
+
+  /// Drafts of [clientId], in any period, whose rest has not been billed yet.
+  Future<List<PendingCompletion>> getPendingCompletions(String clientId) async {
+    final db = await _databaseHelper.database;
+    final rows = await db.rawQuery(
+      '''
+        SELECT work_items.*, payment_periods.start_date AS period_start_date
+        FROM work_items
+        INNER JOIN payment_periods
+          ON payment_periods.id = work_items.payment_period_id
+        WHERE work_items.client_id = ?
+          AND work_items.is_draft = 1
+          AND work_items.deleted_at IS NULL
+          AND payment_periods.deleted_at IS NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM work_items AS completion
+            WHERE completion.completes_work_item_id = work_items.id
+              AND completion.deleted_at IS NULL
+          )
+        ORDER BY payment_periods.start_date ASC, work_items.created_at ASC
+      ''',
+      [clientId],
+    );
+    return [
+      for (final row in rows)
+        PendingCompletion(
+          draft: WorkItem.fromMap(row),
+          periodStartDate: dateFromDatabase(row['period_start_date']),
+        ),
+    ];
+  }
+
+  /// Adds the rest of [draftWorkItemId] to the client's open period as
+  /// completed work, at the draft's own unit price, quantity and multiplier.
+  Future<WorkItem> completeDraft(String draftWorkItemId) async {
+    final db = await _databaseHelper.database;
+    final draftRows = await db.query(
+      'work_items',
+      where: 'id = ? AND is_draft = 1 AND deleted_at IS NULL',
+      whereArgs: [draftWorkItemId],
+      limit: 1,
+    );
+    if (draftRows.isEmpty) {
+      throw StateError('Draft not found.');
+    }
+    final draft = WorkItem.fromMap(draftRows.single);
+    final period = await PaymentPeriodRepository(
+      databaseHelper: _databaseHelper,
+    ).ensurePeriodCategoriesForOpenPeriod(draft.clientId);
+
+    return db.transaction((transaction) async {
+      if (await _hasCompletion(transaction, draft.id)) {
+        throw StateError('This draft has already been completed.');
+      }
+      final now = DateTime.now();
+      final share = 1 - draft.billedShare;
+      final completion = WorkItem(
+        id: _uuid.v4(),
+        clientId: draft.clientId,
+        paymentPeriodId: period.id,
+        title: draft.title,
+        priceSnapshot: draft.priceSnapshot,
+        quantity: draft.quantity,
+        totalPrice: draft.fullPrice * share,
+        multiplier: draft.multiplier,
+        billedShare: share,
+        completesWorkItemId: draft.id,
+        status: WorkItemStatus.completed,
+        completedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      );
+      await transaction.insert(
+        'work_items',
+        {..._rowFor(completion), 'multiplier': completion.multiplier},
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
+      return completion;
+    });
+  }
+
+  Future<bool> _hasCompletion(DatabaseExecutor executor, String draftId) async {
+    final rows = await executor.query(
+      'work_items',
+      columns: ['id'],
+      where: 'completes_work_item_id = ? AND deleted_at IS NULL',
+      whereArgs: [draftId],
+      limit: 1,
+    );
+    return rows.isNotEmpty;
   }
 
   Future<List<WorkItem>> getWorkItemsForClientOpenPeriod(

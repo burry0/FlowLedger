@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:excel/excel.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flowledger/core/formatting.dart';
+import 'package:flowledger/core/work_item_labels.dart';
 import 'package:flowledger/l10n/app_localizations.dart';
 import 'package:flowledger/models/payment.dart';
 import 'package:flowledger/models/work_item.dart';
@@ -103,7 +104,7 @@ class ActivePeriodExportService {
         buffer.writeln([
           index + 1,
           formatDateTime(item.completedAt ?? item.createdAt),
-          _singleLine(item.title),
+          _singleLine(_titleWithShare(data, item)),
           _statusLabel(t, item.status),
           money(item.priceSnapshot),
           number(item.quantity),
@@ -370,7 +371,8 @@ class ActivePeriodExportService {
           ),
           dateStyle,
         );
-        _setCell(sheet, row, 2, TextCellValue(item.title), bodyTextStyle);
+        _setCell(sheet, row, 2, TextCellValue(_titleWithShare(data, item)),
+            bodyTextStyle);
         _setCell(
           sheet,
           row,
@@ -598,4 +600,10 @@ String _fileTimestamp(DateTime value) {
   String twoDigits(int number) => number.toString().padLeft(2, '0');
   return '${local.year}${twoDigits(local.month)}${twoDigits(local.day)}_'
       '${twoDigits(local.hour)}${twoDigits(local.minute)}';
+}
+
+/// Title with "(Draft 50%)" / "(Completion 50%)" for work billed in parts.
+String _titleWithShare(ActivePeriodExportData data, WorkItem item) {
+  final label = shareLabelFor(data.strings, data.formatter, item);
+  return label == null ? item.title : '${item.title} ($label)';
 }

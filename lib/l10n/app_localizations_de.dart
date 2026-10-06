@@ -817,6 +817,80 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get draftToggle => 'Entwurf – der Rest folgt später';
+
+  @override
+  String get draftToggleHint =>
+      'Einen Teil des Preises jetzt abrechnen, den Rest bei Fertigstellung.';
+
+  @override
+  String draftShareSplit(String now, String percent, String later) {
+    return 'Jetzt $now ($percent) · Bei Fertigstellung $later';
+  }
+
+  @override
+  String get draftLockedNote =>
+      'Dieser Entwurf ist fertiggestellt; sein Anteil kann nicht mehr geändert werden.';
+
+  @override
+  String workItemDraftLabel(String percent) {
+    return 'Entwurf $percent';
+  }
+
+  @override
+  String workItemCompletionLabel(String percent) {
+    return 'Fertigstellung $percent';
+  }
+
+  @override
+  String get pendingCompletionsTitle => 'Offene Entwürfe';
+
+  @override
+  String get pendingCompletionsNote =>
+      'Entwürfe aus allen Zeiträumen, deren Rest noch nicht abgerechnet ist.';
+
+  @override
+  String pendingCompletionSubtitle(String date, String percent) {
+    return 'Entwurf vom $date · $percent abgerechnet';
+  }
+
+  @override
+  String get completeDraftAction => 'Fertigstellen';
+
+  @override
+  String get completeDraftTitle => 'Entwurf fertigstellen?';
+
+  @override
+  String completeDraftMessage(String title, String amount) {
+    return 'Der Rest von „$title“ ($amount) wird dem aktiven Zeitraum als abgeschlossene Arbeit hinzugefügt.';
+  }
+
+  @override
+  String get draftCompleted =>
+      'Fertigstellung zum aktiven Zeitraum hinzugefügt.';
+
+  @override
+  String get draftCompleteFailed =>
+      'Der Entwurf konnte nicht fertiggestellt werden.';
+
+  @override
+  String pendingCompletionsSummary(int count, String amount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Entwürfe',
+      one: '1 Entwurf',
+    );
+    return '$_temp0 · noch abzurechnen $amount';
+  }
+
+  @override
+  String get viewDrafts => 'Entwürfe anzeigen';
+
+  @override
+  String get close => 'Schließen';
+
+  @override
   String categoryWorkAdded(String name) {
     return '$name zu den Aufträgen hinzugefügt.';
   }

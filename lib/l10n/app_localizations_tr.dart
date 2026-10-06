@@ -784,6 +784,72 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String get draftToggle => 'Taslak — devamı sonra gelecek';
+
+  @override
+  String get draftToggleHint =>
+      'Fiyatın bir kısmını şimdi, kalanını tamamlayınca faturala.';
+
+  @override
+  String draftShareSplit(String now, String percent, String later) {
+    return 'Şimdi $now ($percent) · Tamamlanınca $later';
+  }
+
+  @override
+  String get draftLockedNote =>
+      'Bu taslak tamamlandı, payı artık değiştirilemez.';
+
+  @override
+  String workItemDraftLabel(String percent) {
+    return 'Taslak $percent';
+  }
+
+  @override
+  String workItemCompletionLabel(String percent) {
+    return 'Tamamlama $percent';
+  }
+
+  @override
+  String get pendingCompletionsTitle => 'Tamamlanacak Taslaklar';
+
+  @override
+  String get pendingCompletionsNote =>
+      'Kalanı henüz faturalanmamış taslaklar (tüm dönemlerden).';
+
+  @override
+  String pendingCompletionSubtitle(String date, String percent) {
+    return '$date dönemi taslağı · $percent alındı';
+  }
+
+  @override
+  String get completeDraftAction => 'Tamamla';
+
+  @override
+  String get completeDraftTitle => 'Taslak tamamlansın mı?';
+
+  @override
+  String completeDraftMessage(String title, String amount) {
+    return '“$title” için kalan $amount aktif döneme tamamlanmış iş olarak eklenecek.';
+  }
+
+  @override
+  String get draftCompleted => 'Tamamlama aktif döneme eklendi.';
+
+  @override
+  String get draftCompleteFailed => 'Taslak tamamlanamadı.';
+
+  @override
+  String pendingCompletionsSummary(int count, String amount) {
+    return '$count taslak · faturalanacak $amount';
+  }
+
+  @override
+  String get viewDrafts => 'Taslakları görüntüle';
+
+  @override
+  String get close => 'Kapat';
+
+  @override
   String categoryWorkAdded(String name) {
     return '$name işlere eklendi.';
   }

@@ -5,6 +5,7 @@ import 'package:flowledger/models/client_default_category.dart';
 import 'package:flowledger/models/closed_period_summary.dart';
 import 'package:flowledger/models/payment.dart';
 import 'package:flowledger/models/payment_allocation.dart';
+import 'package:flowledger/models/pending_completion.dart';
 import 'package:flowledger/models/period_category.dart';
 import 'package:flowledger/models/work_item.dart';
 import 'package:flowledger/models/work_item_revision_summary.dart';
@@ -21,7 +22,9 @@ import 'package:flowledger/services/active_period_export_service.dart';
 import 'package:flowledger/widgets/client/default_category_widgets.dart';
 import 'package:flowledger/widgets/client/period_history_tiles.dart';
 import 'package:flowledger/widgets/custom_work_item_dialog.dart';
+import 'package:flowledger/widgets/draft_share_field.dart';
 import 'package:flowledger/widgets/edit_work_item_dialog.dart';
+import 'package:flowledger/widgets/pending_completions_dialog.dart';
 import 'package:flowledger/widgets/period_summary_strip.dart';
 import 'package:flowledger/widgets/work_item_tile.dart';
 import 'package:flutter/material.dart';
@@ -102,9 +105,10 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
     final total = await _workItemRepository.getOpenPeriodTotal(widget.clientId);
     final workItems = await _workItemRepository
         .getWorkItemsForClientOpenPeriod(widget.clientId);
-    final (payments, paidWork) = await (
+    final (payments, paidWork, pendingCompletions) = await (
       _paymentRepository.getPaymentsForPeriod(period.id),
       _paymentRepository.getPaidWorkForPeriod(period.id),
+      _workItemRepository.getPendingCompletions(widget.clientId),
     ).wait;
     final paymentTotal =
         payments.fold<double>(0, (sum, payment) => sum + payment.amount);
@@ -117,6 +121,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       paymentTotal: paymentTotal,
       payments: payments,
       paidWork: paidWork,
+      pendingCompletions: pendingCompletions,
       workItems: workItems,
       startDate: period.startDate,
       revisionSummaries: revisionSummaries,
@@ -370,6 +375,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
         input.quantity,
         input.notes,
         createAsCompleted: input.createAsCompleted,
+        draftShare: input.draftShare,
       );
       if (mounted) {
         await _refreshOpenPeriodWork();
@@ -391,12 +397,14 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
   Future<void> _showEditWorkItemDialog(
     WorkItem workItem, {
     bool isPaid = false,
+    bool draftLocked = false,
   }) async {
     final changes = await showDialog<EditWorkItemResult>(
       context: context,
       builder: (context) => EditWorkItemDialog(
         workItem: workItem,
         warning: isPaid ? context.l10n.paidWorkEditWarning : null,
+        draftLocked: draftLocked,
       ),
     );
     if (changes == null || !mounted) {
@@ -410,6 +418,8 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
         quantity: changes.quantity,
         multiplier: changes.multiplier,
         notes: changes.notes,
+        isDraft: changes.isDraft,
+        draftShare: changes.draftShare,
       );
       if (mounted) {
         await _refreshOpenPeriodWork();
@@ -426,6 +436,122 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
         );
       }
     }
+  }
+
+  /// Confirms and completes [pending]; true when the completion was added.
+  Future<bool> _completeDraft(PendingCompletion pending) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.l10n.completeDraftTitle),
+        content: Text(context.l10n.completeDraftMessage(
+          pending.draft.title,
+          context.money(pending.remainingAmount),
+        )),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(context.l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(context.l10n.completeDraftAction),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return false;
+    }
+    try {
+      await _workItemRepository.completeDraft(pending.draft.id);
+      if (mounted) {
+        await _refreshOpenPeriodWork();
+        if (!mounted) return true;
+        AppRefreshNotifier.notifyChanged();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.draftCompleted)),
+        );
+      }
+      return true;
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.draftCompleteFailed)),
+        );
+      }
+      return false;
+    }
+  }
+
+  Future<void> _showPendingCompletions(List<PendingCompletion> pending) {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => PendingCompletionsDialog(
+        pending: pending,
+        onComplete: _completeDraft,
+      ),
+    );
+  }
+
+  /// One-line summary; the list itself opens in a dialog so many drafts do
+  /// not push the current work down the page.
+  Widget _buildPendingCompletions(List<PendingCompletion> pending) {
+    final theme = Theme.of(context);
+    final remaining =
+        pending.fold<double>(0, (sum, p) => sum + p.remainingAmount);
+    final open = OutlinedButton(
+      onPressed: () => _showPendingCompletions(pending),
+      child: Text(context.l10n.viewDrafts),
+    );
+    final summary = Row(
+      children: [
+        Icon(Icons.hourglass_bottom_outlined,
+            color: theme.colorScheme.onSurfaceVariant),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(context.l10n.pendingCompletionsTitle,
+                  style: theme.textTheme.titleSmall),
+              const SizedBox(height: 2),
+              Text(
+                context.l10n.pendingCompletionsSummary(
+                  pending.length,
+                  context.money(remaining),
+                ),
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: LayoutBuilder(
+            builder: (context, constraints) => constraints.maxWidth < 480
+                // Narrow windows: the button goes under the text.
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [summary, const SizedBox(height: 8), open],
+                  )
+                : Row(
+                    children: [
+                      Expanded(child: summary),
+                      const SizedBox(width: 12),
+                      open,
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _setStepDone(WorkItemStep step, bool isDone) async {
@@ -651,6 +777,9 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
     final paid = data.paidWork.byWorkItem[workItem.id];
     final paidLabel =
         paid == null ? null : l10n.workItemPaidOn(formatDate(paid.paidAt));
+    final shareLabel = workItemShareLabel(context, workItem);
+    final draftLocked = workItem.isDraft &&
+        !data.pendingCompletions.any((p) => p.draft.id == workItem.id);
     return WorkItemTile(
       key: ValueKey(workItem.id),
       workItem: workItem,
@@ -658,6 +787,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       subtitle: '$statusLabel · '
           '${l10n.quantityWithUnit(context.number(workItem.quantity))} · '
           '${context.money(workItem.priceSnapshot)}$multiplier'
+          '${shareLabel == null ? '' : ' · $shareLabel'}'
           '${paidLabel == null ? '' : ' · $paidLabel'}',
       metrics: [
         (label: l10n.status, value: statusLabel),
@@ -673,7 +803,11 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
         title: workItem.title,
       ),
       onStepChanged: _setStepDone,
-      onEdit: () => _showEditWorkItemDialog(workItem, isPaid: paid != null),
+      onEdit: () => _showEditWorkItemDialog(
+        workItem,
+        isPaid: paid != null,
+        draftLocked: draftLocked,
+      ),
       onDelete: () =>
           _confirmSoftDeleteWorkItem(workItem, isPaid: paid != null),
       onMarkCompleted: () => _markWorkItemCompleted(workItem),
@@ -924,6 +1058,16 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                   },
                 ),
                 const SizedBox(height: 32),
+                FutureBuilder<_OpenPeriodWorkData>(
+                  future: _openPeriodWorkFuture,
+                  builder: (context, snapshot) {
+                    final pending = snapshot.data?.pendingCompletions;
+                    if (pending == null || pending.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return _buildPendingCompletions(pending);
+                  },
+                ),
                 Text(context.l10n.workItems,
                     style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 12),
@@ -1086,6 +1230,7 @@ class _OpenPeriodWorkData {
     required this.paymentTotal,
     required this.payments,
     required this.paidWork,
+    required this.pendingCompletions,
     required this.workItems,
     required this.startDate,
     required this.revisionSummaries,
@@ -1095,6 +1240,7 @@ class _OpenPeriodWorkData {
   final double paymentTotal;
   final List<Payment> payments;
   final PeriodPaidWork paidWork;
+  final List<PendingCompletion> pendingCompletions;
   final List<WorkItem> workItems;
   final DateTime startDate;
   final Map<String, WorkItemRevisionSummary> revisionSummaries;

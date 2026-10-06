@@ -42,7 +42,7 @@ class DatabaseHelper {
     _instance = helper;
   }
 
-  static const databaseVersion = 6;
+  static const databaseVersion = 7;
   static const _databaseFileName = 'flowledger.db';
 
   /// File name used before 1.0.
@@ -399,6 +399,7 @@ class DatabaseHelper {
     4: _createVersion4,
     5: _createVersion5,
     6: _createVersion6,
+    7: _createVersion7,
   };
 
   static Future<void> _createVersion1(DatabaseExecutor db) async {
@@ -711,6 +712,39 @@ class DatabaseHelper {
       CREATE INDEX IF NOT EXISTS payment_allocations_by_payment
       ON payment_allocations (payment_id)
       WHERE deleted_at IS NULL
+    ''');
+  }
+
+  /// Drafts billed in parts: [billed_share] is the part of the full price a
+  /// row bills (1 for normal work), [is_draft] marks a draft whose rest is
+  /// billed later by a completion row that points to it through
+  /// [completes_work_item_id]. Existing rows bill in full and keep their
+  /// totals. Columns are checked first, as in version 5.
+  static Future<void> _createVersion7(DatabaseExecutor db) async {
+    final columns = (await db.rawQuery('PRAGMA table_info(work_items)'))
+        .map((row) => row['name'])
+        .toSet();
+    if (!columns.contains('billed_share')) {
+      await db.execute(
+        'ALTER TABLE work_items ADD COLUMN billed_share REAL NOT NULL DEFAULT 1',
+      );
+    }
+    if (!columns.contains('is_draft')) {
+      await db.execute(
+        'ALTER TABLE work_items ADD COLUMN is_draft INTEGER NOT NULL DEFAULT 0',
+      );
+    }
+    if (!columns.contains('completes_work_item_id')) {
+      await db.execute(
+        'ALTER TABLE work_items ADD COLUMN completes_work_item_id TEXT '
+        'REFERENCES work_items(id)',
+      );
+    }
+    // One completion per draft.
+    await db.execute('''
+      CREATE UNIQUE INDEX IF NOT EXISTS work_items_one_completion_per_draft
+      ON work_items (completes_work_item_id)
+      WHERE completes_work_item_id IS NOT NULL AND deleted_at IS NULL
     ''');
   }
 }
