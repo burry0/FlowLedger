@@ -11,6 +11,9 @@ class WorkItem {
     required this.quantity,
     required this.totalPrice,
     this.multiplier = 1,
+    this.billedShare = 1,
+    this.isDraft = false,
+    this.completesWorkItemId,
     this.status = WorkItemStatus.completed,
     this.completedAt,
     this.notes,
@@ -31,6 +34,22 @@ class WorkItem {
   /// Total = [priceSnapshot] × [quantity] × [multiplier]. Only written when
   /// editing; new rows use the column default (1), so it is not in [toMap].
   final double multiplier;
+
+  /// Part of the full price this row bills: below 1 for a draft and for the
+  /// completion that bills the rest. Like [multiplier], not in [toMap].
+  final double billedShare;
+
+  /// A draft whose rest is billed later by a completion row.
+  final bool isDraft;
+
+  /// Set on a completion row: the draft it finishes.
+  final String? completesWorkItemId;
+
+  bool get isCompletion => completesWorkItemId != null;
+
+  /// Price × quantity × multiplier, before [billedShare].
+  double get fullPrice => priceSnapshot * quantity * multiplier;
+
   final WorkItemStatus status;
   final DateTime? completedAt;
   final String? notes;
@@ -65,6 +84,9 @@ class WorkItem {
         quantity: (map['quantity']! as num).toDouble(),
         totalPrice: (map['total_price']! as num).toDouble(),
         multiplier: (map['multiplier'] as num?)?.toDouble() ?? 1,
+        billedShare: (map['billed_share'] as num?)?.toDouble() ?? 1,
+        isDraft: map['is_draft'] == 1,
+        completesWorkItemId: map['completes_work_item_id'] as String?,
         status: WorkItemStatus.fromDatabase(map['status']! as String),
         completedAt: nullableDateFromDatabase(map['completed_at']),
         notes: map['notes'] as String?,

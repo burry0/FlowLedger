@@ -1518,6 +1518,90 @@ abstract class AppLocalizations {
   /// **'For: {titles}'**
   String paymentCoversWork(String titles);
 
+  /// No description provided for @draftToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft — the rest comes later'**
+  String get draftToggle;
+
+  /// No description provided for @draftToggleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill part of the price now and the rest when you finish it.'**
+  String get draftToggleHint;
+
+  /// No description provided for @draftShareSplit.
+  ///
+  /// In en, this message translates to:
+  /// **'Now {now} ({percent}) · On completion {later}'**
+  String draftShareSplit(String now, String percent, String later);
+
+  /// No description provided for @draftLockedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'This draft has been completed, so its share can no longer change.'**
+  String get draftLockedNote;
+
+  /// No description provided for @workItemDraftLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft {percent}'**
+  String workItemDraftLabel(String percent);
+
+  /// No description provided for @workItemCompletionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Completion {percent}'**
+  String workItemCompletionLabel(String percent);
+
+  /// No description provided for @pendingCompletionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Drafts to complete'**
+  String get pendingCompletionsTitle;
+
+  /// No description provided for @pendingCompletionsNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Drafts from any period whose rest you have not billed yet.'**
+  String get pendingCompletionsNote;
+
+  /// No description provided for @pendingCompletionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft from {date} · {percent} billed'**
+  String pendingCompletionSubtitle(String date, String percent);
+
+  /// No description provided for @completeDraftAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete'**
+  String get completeDraftAction;
+
+  /// No description provided for @completeDraftTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete draft?'**
+  String get completeDraftTitle;
+
+  /// No description provided for @completeDraftMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The rest of “{title}” ({amount}) will be added to the active period as completed work.'**
+  String completeDraftMessage(String title, String amount);
+
+  /// No description provided for @draftCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completion added to the active period.'**
+  String get draftCompleted;
+
+  /// No description provided for @draftCompleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The draft could not be completed.'**
+  String get draftCompleteFailed;
+
   /// No description provided for @categoryWorkAdded.
   ///
   /// In en, this message translates to:

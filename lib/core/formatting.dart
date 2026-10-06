@@ -35,6 +35,10 @@ class AppFormatter {
   String number(double value) =>
       NumberFormat('#,##0.##', localeName).format(value);
 
+  /// 0.5 → "%50" (tr) / "50%" (en), rounded to whole percent.
+  String percent(double share) =>
+      NumberFormat.percentPattern(localeName).format(share);
+
   /// Parses user input with either "," or "." as the decimal separator.
   static double? parseNumber(String input) {
     final trimmed = input.trim().replaceAll(' ', '');
@@ -63,6 +67,8 @@ extension FormattingContext on BuildContext {
   String money(double value) => formatter.money(value);
 
   String number(double value) => formatter.number(value);
+
+  String percent(double share) => formatter.percent(share);
 }
 
 String _twoDigits(int value) => value.toString().padLeft(2, '0');

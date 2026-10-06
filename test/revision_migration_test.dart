@@ -45,12 +45,23 @@ void main() {
     final v4 = testDatabase.helper();
     final db = await v4.database;
     expect(await db.getVersion(), DatabaseHelper.databaseVersion);
-    // v5 only adds work_items.multiplier (default 1); everything else must
+    // v5 adds work_items.multiplier (default 1) and v7 the draft columns
+    // (billed in full, not a draft, no completion); everything else must
     // match v3.
     final after = await snapshotLedgerTables(v4);
     expect(after['work_items']!.map((row) => row['multiplier']).toSet(), {1});
+    expect(after['work_items']!.map((row) => row['billed_share']).toSet(), {1});
+    expect(after['work_items']!.map((row) => row['is_draft']).toSet(), {0});
+    expect(
+      after['work_items']!.map((row) => row['completes_work_item_id']).toSet(),
+      {null},
+    );
     for (final row in after['work_items']!) {
-      row.remove('multiplier');
+      row
+        ..remove('multiplier')
+        ..remove('billed_share')
+        ..remove('is_draft')
+        ..remove('completes_work_item_id');
     }
     expect(after, before);
 

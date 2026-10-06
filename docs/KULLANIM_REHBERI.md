@@ -25,6 +25,15 @@ Her müşterinin her zaman tek bir **aktif dönemi** vardır. Müşteri sayfası
 
 Bir işi değiştirmek için kartı açıp **Düzenle**'ye basın: başlığı, adedi, **çarpanı** (×1, ×1,25, ×1,5, ×2, ×3 — acil veya ek emek gerektiren işler için) ve notu değiştirebilirsiniz. Diyalog yazarken `fiyat × adet × çarpan = toplam` sonucunu gösterir.
 
+### Parça parça faturalanan taslaklar
+
+Bazen taslağı şimdi, tam halini sonra teslim edersiniz. Örneğin taslak için fiyatın yarısını, final için kalanını alırsınız.
+
+- Tek seferlik iş eklerken ya da herhangi bir işte **Düzenle** içinde **Taslak — devamı sonra gelecek** seçeneğini açın ve final fiyatın ne kadarının şimdi faturalanacağını kaydırıcıyla ayarlayın (varsayılan %50). Diyalog iki parçayı da gösterir, örneğin *Şimdi ₺1.000 (%50) · Tamamlanınca ₺1.000*.
+- Taslak içinde bulunduğunuz dönemde faturalanır ve müşteri sayfasında **Tamamlanacak Taslaklar** altında görünür. O dönem kapansa bile orada kalır.
+- Tam halini teslim edince **Tamamla**'ya basın. Kalan tutar aktif döneme tamamlanmış iş olarak eklenir. Taslağın kendi fiyatı kullanılır, sonradan yapılan fiyat değişiklikleri uygulanmaz.
+- Tamamlanan bir taslağın payı artık değiştirilemez. Tamamlama kaydını silerseniz taslak yeniden tamamlanmayı bekler.
+
 ## 4. Revizyonlar ve geri bildirim
 
 Her iş bir teslimattır. Kartı açıp **Revizyonlar**'a tıklayın.

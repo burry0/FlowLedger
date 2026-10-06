@@ -25,6 +25,15 @@ Every client always has exactly one **active period**. The client page shows:
 
 To change a work item, expand it and choose **Edit**: you can change the title, the quantity, the **multiplier** (×1, ×1.25, ×1.5, ×2, ×3 — for rush or extra-effort jobs) and the notes. The dialog shows `price × quantity × multiplier = total` while you type.
 
+### Drafts billed in parts
+
+Sometimes you deliver a draft now and the finished version later — for example, half the price for the draft and the rest for the final cut.
+
+- When adding one-off work, or in **Edit** for any work item, switch on **Draft — the rest comes later** and set with the slider how much of the full price is billed now (default 50 %). The dialog shows both parts, e.g. *Now ₺1,000 (50 %) · On completion ₺1,000*.
+- The draft is billed in the current period and appears under **Drafts to complete** on the client page — even after that period is closed.
+- When you deliver the finished version, click **Complete**. The rest is added to the active period as completed work, at the draft's own price (later price changes do not apply).
+- Once a draft is completed its share can no longer change. Deleting the completion makes the draft wait for completion again.
+
 ## 4. Revisions and feedback
 
 Each work item is a deliverable. Expand it and click **Revisions**.

@@ -1,6 +1,7 @@
 import 'package:flowledger/core/formatting.dart';
 import 'package:flowledger/l10n/l10n.dart';
 import 'package:flowledger/models/work_item.dart';
+import 'package:flowledger/widgets/draft_share_field.dart';
 import 'package:flutter/material.dart';
 
 class EditWorkItemResult {
@@ -9,20 +10,34 @@ class EditWorkItemResult {
     required this.quantity,
     required this.multiplier,
     this.notes,
+    this.isDraft,
+    this.draftShare,
   });
 
   final String title;
   final double quantity;
   final double multiplier;
   final String? notes;
+
+  /// Null when the draft settings cannot change (completion rows).
+  final bool? isDraft;
+  final double? draftShare;
 }
 
 /// Edits a work item's title, quantity, multiplier and notes. The unit price
 /// is fixed; the preview shows unit price × quantity × multiplier.
 class EditWorkItemDialog extends StatefulWidget {
-  const EditWorkItemDialog({super.key, required this.workItem, this.warning});
+  const EditWorkItemDialog({
+    super.key,
+    required this.workItem,
+    this.warning,
+    this.draftLocked = false,
+  });
 
   final WorkItem workItem;
+
+  /// The draft already has a completion, so its share is read-only.
+  final bool draftLocked;
 
   /// Shown above the fields, e.g. when the work is already marked as paid.
   final String? warning;
@@ -39,6 +54,8 @@ class _EditWorkItemDialogState extends State<EditWorkItemDialog> {
   late final TextEditingController _quantityController;
   late final TextEditingController _notesController;
   late double _multiplier;
+  late bool _isDraft;
+  late double _draftShare;
 
   @override
   void initState() {
@@ -49,7 +66,18 @@ class _EditWorkItemDialogState extends State<EditWorkItemDialog> {
         TextEditingController(text: _plainNumber(workItem.quantity));
     _notesController = TextEditingController(text: workItem.notes ?? '');
     _multiplier = workItem.multiplier;
+    _isDraft = workItem.isDraft;
+    _draftShare =
+        workItem.isDraft ? workItem.billedShare : DraftShareField.defaultShare;
   }
+
+  bool get _draftEditable =>
+      !widget.workItem.isCompletion && !widget.draftLocked;
+
+  /// Share billed by this row with the current settings.
+  double get _billedShare => widget.workItem.isCompletion
+      ? widget.workItem.billedShare
+      : (_isDraft ? _draftShare : 1);
 
   @override
   void dispose() {
@@ -75,6 +103,8 @@ class _EditWorkItemDialogState extends State<EditWorkItemDialog> {
         quantity: _quantity!,
         multiplier: _multiplier,
         notes: notes.isEmpty ? null : notes,
+        isDraft: _draftEditable ? _isDraft : null,
+        draftShare: _draftEditable && _isDraft ? _draftShare : null,
       ),
     );
   }
@@ -171,11 +201,26 @@ class _EditWorkItemDialogState extends State<EditWorkItemDialog> {
                   quantity == null
                       ? '${context.money(price)} × — × ${context.number(_multiplier)}'
                       : '${context.money(price)} × ${context.number(quantity)} × '
-                          '${context.number(_multiplier)} = '
-                          '${context.money(price * quantity * _multiplier)}',
+                          '${context.number(_multiplier)}'
+                          '${_billedShare == 1 ? '' : ' × ${context.percent(_billedShare)}'} = '
+                          '${context.money(price * quantity * _multiplier * _billedShare)}',
                   style: theme.textTheme.titleSmall
                       ?.copyWith(color: theme.colorScheme.primary),
                 ),
+                if (!widget.workItem.isCompletion) ...[
+                  const SizedBox(height: 8),
+                  DraftShareField(
+                    isDraft: _isDraft,
+                    share: _draftShare,
+                    fullPrice: quantity == null
+                        ? null
+                        : price * quantity * _multiplier,
+                    locked: widget.draftLocked,
+                    onDraftChanged: (value) => setState(() => _isDraft = value),
+                    onShareChanged: (value) =>
+                        setState(() => _draftShare = value),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _notesController,

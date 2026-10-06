@@ -28,6 +28,7 @@ https://github.com/user-attachments/assets/6b07ae5f-1a45-4907-bc6d-cadc98a2c3eb
 - **Clients and billing periods** — record work per client in an open period; close the period when you get paid and a new one starts automatically.
 - **Categories with fixed prices** — define your usual services and prices per client. Prices are frozen when a period opens, so later price changes never rewrite history.
 - **Work items with stages** — quantity, an optional multiplier (for example ×1.5 for rush jobs), notes and a checklist of stages.
+- **Drafts billed in parts** — bill a share of the price for a draft now (set with a slider) and the rest when you finish it, even in a later period.
 - **Revisions** — for each work item, keep versions (V1, V2, Final…) with a status (Draft / Sent / Approved) and a file or link, plus client feedback marked as *Revision* or *New scope*, with optional video timecodes. Revision records never change amounts or payments.
 - **History** — a timeline of each work item built from your records.
 - **Payments** — full or partial payments, remaining balance, closed-period archive. Record a partial payment by amount or by ticking the work items it covers, and see which work is already paid.
