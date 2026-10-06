@@ -869,6 +869,25 @@ class AppLocalizationsRu extends AppLocalizations {
   String get draftCompleteFailed => 'Не удалось завершить черновик.';
 
   @override
+  String pendingCompletionsSummary(int count, String amount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count черновика',
+      many: '$count черновиков',
+      few: '$count черновика',
+      one: '$count черновик',
+    );
+    return '$_temp0 · к выставлению $amount';
+  }
+
+  @override
+  String get viewDrafts => 'Показать черновики';
+
+  @override
+  String get close => 'Закрыть';
+
+  @override
   String categoryWorkAdded(String name) {
     return '«$name» добавлена в работы.';
   }

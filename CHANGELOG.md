@@ -4,7 +4,7 @@
 
 ### Added
 - **Drafts billed in parts:** when adding one-off work or editing any work item, switch on *Draft — the rest comes later* and choose with a slider how much of the full price is billed now (5–95 %, default 50 %).
-- **Drafts to complete:** the client page lists drafts from any period whose rest is not billed yet. *Complete* adds the rest to the active period as completed work, at the draft's own price, quantity and multiplier.
+- **Drafts to complete:** a one-line summary on the client page (count and amount still to bill); **View drafts** opens the list of drafts from any period whose rest is not billed yet. *Complete* adds the rest to the active period as completed work, at the draft's own price, quantity and multiplier.
 - Drafts and completions are labelled (*Draft 50 %*, *Completion 50 %*) on the client page, in closed periods and in TXT/XLSX reports.
 
 ### Changed

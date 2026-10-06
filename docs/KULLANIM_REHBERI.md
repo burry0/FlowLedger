@@ -31,7 +31,8 @@ Bazen taslağı şimdi, tam halini sonra teslim edersiniz. Örneğin taslak içi
 
 - Tek seferlik iş eklerken ya da herhangi bir işte **Düzenle** içinde **Taslak — devamı sonra gelecek** seçeneğini açın ve final fiyatın ne kadarının şimdi faturalanacağını kaydırıcıyla ayarlayın (varsayılan %50). Diyalog iki parçayı da gösterir, örneğin *Şimdi ₺1.000 (%50) · Tamamlanınca ₺1.000*.
 - Taslak içinde bulunduğunuz dönemde faturalanır ve müşteri sayfasında **Tamamlanacak Taslaklar** altında görünür. O dönem kapansa bile orada kalır.
-- Tam halini teslim edince **Tamamla**'ya basın. Kalan tutar aktif döneme tamamlanmış iş olarak eklenir. Taslağın kendi fiyatı kullanılır, sonradan yapılan fiyat değişiklikleri uygulanmaz.
+- Müşteri sayfasında tek satırlık bir özet görünür (*13 taslak · faturalanacak ₺…*). **Taslakları görüntüle** listeyi açar.
+- Tam halini teslim edince bu listede **Tamamla**'ya basın. Kalan tutar aktif döneme tamamlanmış iş olarak eklenir. Taslağın kendi fiyatı kullanılır, sonradan yapılan fiyat değişiklikleri uygulanmaz.
 - Tamamlanan bir taslağın payı artık değiştirilemez. Tamamlama kaydını silerseniz taslak yeniden tamamlanmayı bekler.
 
 ## 4. Revizyonlar ve geri bildirim

@@ -1,3 +1,4 @@
+import 'package:flowledger/l10n/app_localizations.dart';
 import 'package:flowledger/repositories/payment_period_repository.dart';
 import 'package:flowledger/repositories/payment_repository.dart';
 import 'package:flowledger/repositories/work_item_repository.dart';
@@ -244,8 +245,12 @@ void main() {
 
     expect(find.textContaining('Taslak %50'), findsOneWidget);
     expect(find.text('Tamamlanacak Taslaklar'), findsOneWidget);
+    expect(find.text('1 taslak · faturalanacak ₺1.000,00'), findsOneWidget);
+    // The list itself is not on the page, only in the dialog.
+    expect(find.widgetWithText(FilledButton, 'Tamamla'), findsNothing);
 
-    await tester.ensureVisible(find.widgetWithText(FilledButton, 'Tamamla'));
+    await tester.tap(find.text('Taslakları görüntüle'));
+    await tester.pump(const Duration(milliseconds: 400));
     await tester.tap(find.widgetWithText(FilledButton, 'Tamamla'));
     await tester.pump(const Duration(milliseconds: 400));
     expect(
@@ -253,6 +258,8 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Tamamla').last);
     await pumpIo(tester, rounds: 30);
 
+    // The last draft was completed, so the dialog closed by itself.
+    expect(find.byType(AlertDialog), findsNothing);
     expect(find.text('Tamamlama aktif döneme eklendi.'), findsOneWidget);
     expect(find.text('Tamamlanacak Taslaklar'), findsNothing);
     expect(find.textContaining('Tamamlama %50'), findsOneWidget);
@@ -263,25 +270,67 @@ void main() {
   });
 
   for (final code in ['tr', 'en', 'de', 'ru']) {
-    testWidgets('pending drafts fit a narrow window: $code', (tester) async {
-      await setWindowSize(tester, const Size(420, 2400));
-      await tester.runAsync(() => workItems.addCustomWorkItem(
+    testWidgets('many drafts stay compact on a narrow window: $code',
+        (tester) async {
+      await setWindowSize(tester, const Size(420, 900));
+      await tester.runAsync(() async {
+        for (var i = 1; i <= 13; i++) {
+          await workItems.addCustomWorkItem(
             fixture.clientId,
-            'Uzun başlıklı belgesel taslağı bölüm bir',
+            'Uzun başlıklı belgesel taslağı bölüm $i',
             123456,
             1,
             null,
             createAsCompleted: true,
             draftShare: 0.35,
-          ));
+          );
+        }
+      });
       await tester.pumpWidget(localizedApp(
         ClientDetailScreen(clientId: fixture.clientId, clientName: 'Örnek'),
         locale: Locale(code),
       ));
       await pumpIo(tester);
 
+      // One summary row on the page instead of 13 rows.
       expect(tester.takeException(), isNull);
+      await tester.scrollUntilVisible(
+        find.byIcon(Icons.hourglass_bottom_outlined),
+        300,
+        scrollable: find
+            .byWidgetPredicate((widget) =>
+                widget is Scrollable &&
+                widget.axisDirection == AxisDirection.down)
+            .first,
+      );
       expect(find.byIcon(Icons.hourglass_bottom_outlined), findsOneWidget);
+      expect(find.textContaining('13'), findsWidgets);
+
+      final open = find.descendant(
+        of: find.ancestor(
+          of: find.byIcon(Icons.hourglass_bottom_outlined),
+          matching: find.byType(Card),
+        ),
+        matching: find.byType(OutlinedButton),
+      );
+      await tester.ensureVisible(open);
+      await tester.pump();
+      await tester.tap(open);
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(AlertDialog), findsOneWidget);
+      // The dialog list scrolls instead of growing past the window.
+      expect(
+        tester.getSize(find.byType(AlertDialog)).height,
+        lessThanOrEqualTo(900),
+      );
+
+      await tester.tap(find.widgetWithText(TextButton, lookupClose(code)));
+      await pumpIo(tester);
+      expect(find.byType(AlertDialog), findsNothing);
     });
   }
 }
+
+String lookupClose(String code) => lookupAppLocalizations(Locale(code)).close;

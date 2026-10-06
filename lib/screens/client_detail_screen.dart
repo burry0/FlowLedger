@@ -24,6 +24,7 @@ import 'package:flowledger/widgets/client/period_history_tiles.dart';
 import 'package:flowledger/widgets/custom_work_item_dialog.dart';
 import 'package:flowledger/widgets/draft_share_field.dart';
 import 'package:flowledger/widgets/edit_work_item_dialog.dart';
+import 'package:flowledger/widgets/pending_completions_dialog.dart';
 import 'package:flowledger/widgets/period_summary_strip.dart';
 import 'package:flowledger/widgets/work_item_tile.dart';
 import 'package:flutter/material.dart';
@@ -437,7 +438,8 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
     }
   }
 
-  Future<void> _completeDraft(PendingCompletion pending) async {
+  /// Confirms and completes [pending]; true when the completion was added.
+  Future<bool> _completeDraft(PendingCompletion pending) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -459,72 +461,96 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       ),
     );
     if (confirmed != true || !mounted) {
-      return;
+      return false;
     }
     try {
       await _workItemRepository.completeDraft(pending.draft.id);
       if (mounted) {
         await _refreshOpenPeriodWork();
-        if (!mounted) return;
+        if (!mounted) return true;
         AppRefreshNotifier.notifyChanged();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.l10n.draftCompleted)),
         );
       }
+      return true;
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.l10n.draftCompleteFailed)),
         );
       }
+      return false;
     }
   }
 
+  Future<void> _showPendingCompletions(List<PendingCompletion> pending) {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => PendingCompletionsDialog(
+        pending: pending,
+        onComplete: _completeDraft,
+      ),
+    );
+  }
+
+  /// One-line summary; the list itself opens in a dialog so many drafts do
+  /// not push the current work down the page.
   Widget _buildPendingCompletions(List<PendingCompletion> pending) {
     final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final remaining =
+        pending.fold<double>(0, (sum, p) => sum + p.remainingAmount);
+    final open = OutlinedButton(
+      onPressed: () => _showPendingCompletions(pending),
+      child: Text(context.l10n.viewDrafts),
+    );
+    final summary = Row(
       children: [
-        Text(context.l10n.pendingCompletionsTitle,
-            style: theme.textTheme.headlineSmall),
-        const SizedBox(height: 4),
-        Text(context.l10n.pendingCompletionsNote,
-            style: theme.textTheme.bodySmall),
-        const SizedBox(height: 12),
-        Card(
-          margin: EdgeInsets.zero,
-          clipBehavior: Clip.antiAlias,
+        Icon(Icons.hourglass_bottom_outlined,
+            color: theme.colorScheme.onSurfaceVariant),
+        const SizedBox(width: 16),
+        Expanded(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (var index = 0; index < pending.length; index++) ...[
-                if (index > 0)
-                  Divider(height: 1, color: theme.colorScheme.outlineVariant),
-                ListTile(
-                  leading: const Icon(Icons.hourglass_bottom_outlined),
-                  title: Text(pending[index].draft.title),
-                  subtitle: Text(context.l10n.pendingCompletionSubtitle(
-                    formatDate(pending[index].periodStartDate),
-                    context.percent(pending[index].billedShare),
-                  )),
-                  trailing: Wrap(
-                    spacing: 12,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(context.money(pending[index].remainingAmount),
-                          style: theme.textTheme.titleSmall),
-                      FilledButton.tonal(
-                        onPressed: () => _completeDraft(pending[index]),
-                        child: Text(context.l10n.completeDraftAction),
-                      ),
-                    ],
-                  ),
+              Text(context.l10n.pendingCompletionsTitle,
+                  style: theme.textTheme.titleSmall),
+              const SizedBox(height: 2),
+              Text(
+                context.l10n.pendingCompletionsSummary(
+                  pending.length,
+                  context.money(remaining),
                 ),
-              ],
+                style: theme.textTheme.bodyMedium,
+              ),
             ],
           ),
         ),
-        const SizedBox(height: 32),
       ],
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: LayoutBuilder(
+            builder: (context, constraints) => constraints.maxWidth < 480
+                // Narrow windows: the button goes under the text.
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [summary, const SizedBox(height: 8), open],
+                  )
+                : Row(
+                    children: [
+                      Expanded(child: summary),
+                      const SizedBox(width: 12),
+                      open,
+                    ],
+                  ),
+          ),
+        ),
+      ),
     );
   }
 

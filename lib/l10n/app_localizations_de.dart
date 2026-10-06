@@ -874,6 +874,23 @@ class AppLocalizationsDe extends AppLocalizations {
       'Der Entwurf konnte nicht fertiggestellt werden.';
 
   @override
+  String pendingCompletionsSummary(int count, String amount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Entwürfe',
+      one: '1 Entwurf',
+    );
+    return '$_temp0 · noch abzurechnen $amount';
+  }
+
+  @override
+  String get viewDrafts => 'Entwürfe anzeigen';
+
+  @override
+  String get close => 'Schließen';
+
+  @override
   String categoryWorkAdded(String name) {
     return '$name zu den Aufträgen hinzugefügt.';
   }

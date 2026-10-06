@@ -1602,6 +1602,24 @@ abstract class AppLocalizations {
   /// **'The draft could not be completed.'**
   String get draftCompleteFailed;
 
+  /// No description provided for @pendingCompletionsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 draft} other{{count} drafts}} · {amount} still to bill'**
+  String pendingCompletionsSummary(int count, String amount);
+
+  /// No description provided for @viewDrafts.
+  ///
+  /// In en, this message translates to:
+  /// **'View drafts'**
+  String get viewDrafts;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
   /// No description provided for @categoryWorkAdded.
   ///
   /// In en, this message translates to:

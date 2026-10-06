@@ -839,6 +839,17 @@ class AppLocalizationsTr extends AppLocalizations {
   String get draftCompleteFailed => 'Taslak tamamlanamadı.';
 
   @override
+  String pendingCompletionsSummary(int count, String amount) {
+    return '$count taslak · faturalanacak $amount';
+  }
+
+  @override
+  String get viewDrafts => 'Taslakları görüntüle';
+
+  @override
+  String get close => 'Kapat';
+
+  @override
   String categoryWorkAdded(String name) {
     return '$name işlere eklendi.';
   }

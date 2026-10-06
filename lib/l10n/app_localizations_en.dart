@@ -860,6 +860,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get draftCompleteFailed => 'The draft could not be completed.';
 
   @override
+  String pendingCompletionsSummary(int count, String amount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count drafts',
+      one: '1 draft',
+    );
+    return '$_temp0 · $amount still to bill';
+  }
+
+  @override
+  String get viewDrafts => 'View drafts';
+
+  @override
+  String get close => 'Close';
+
+  @override
   String categoryWorkAdded(String name) {
     return '$name added to work items.';
   }
